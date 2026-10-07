@@ -6,7 +6,7 @@ Test::Log::Abstraction - Capture log output in tests and assert on it
 
 =head1 VERSION
 
-0.01
+0.001.0
 
 =head1 SYNOPSIS
 
@@ -145,22 +145,6 @@ C<no method 'foo'> - the code under test called C<< $logger->foo() >>, which
 is not a log level; the message is captured under that name and the notice is
 always printed, so a typo'd level cannot pass silently.
 
-=head1 SEE ALSO
-
-L<Log::Abstraction>, L<Test::Builder>, L<Test::Most>
-
-=head1 AUTHOR
-
-Nigel Horne C<< <njh@nigelhorne.com> >>
-
-=head1 COPYRIGHT AND LICENCE
-
-Copyright (C) Nigel Horne 2026
-
-This library is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself, either Perl version 5.x or, at your option, any
-later version of Perl 5 you may have available.
-
 =cut
 
 use strict;
@@ -169,7 +153,7 @@ use Carp qw(croak);
 use Scalar::Util ();
 use Test::Builder ();
 
-our $VERSION = '0.01';
+our $VERSION = '0.001.0';
 our $AUTOLOAD;
 
 # Level -> severity, lower is more severe, following POSIX syslog priorities.
@@ -573,12 +557,22 @@ sub verbose {
 	return $self->{'verbose'};
 }
 
-1;
+=head1 SEE ALSO
 
-__END__
+L<Log::Abstraction>, L<Test::Builder>, L<Test::Most>
 
-=head1 COPYRIGHT
+=head1 AUTHOR
 
-Copyright (C) Nigel Horne 2026
+Nigel Horne, C<< <njh at nigelhorne.com> >>
+
+=head1 LICENCE AND COPYRIGHT
+
+Copyright 2026 Nigel Horne.
+
+Usage is subject to the GPL2 licence terms.
+If you use it,
+please let me know.
 
 =cut
+
+1;

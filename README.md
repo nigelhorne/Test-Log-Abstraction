@@ -4,7 +4,7 @@ Test::Log::Abstraction - Capture log output in tests and assert on it
 
 ## Version
 
-0.01
+0.001.0
 
 ## Synopsis
 
@@ -167,22 +167,6 @@ Gets or sets verbose mode.
 is not a log level; the message is captured under that name and the notice is
 always printed, so a typo'd level cannot pass silently.
 
-## See Also
-
-[Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction), [Test::Builder](https://metacpan.org/pod/Test%3A%3ABuilder), [Test::Most](https://metacpan.org/pod/Test%3A%3AMost)
-
-## Author
-
-Nigel Horne `<njh@nigelhorne.com>`
-
-## Copyright and Licence
-
-Copyright (C) Nigel Horne 2026
-
-This library is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself, either Perl version 5.x or, at your option, any
-later version of Perl 5 you may have available.
-
 ### Trace, Debug, Info, Notice, Warn, Error, Critical, Alert, Emergency
 
 ```perl
@@ -225,6 +209,18 @@ dying part way through a test.
 
 See ["METHODS"](#methods) above.
 
-## Copyright
+## See Also
 
-Copyright (C) Nigel Horne 2026
+[Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction), [Test::Builder](https://metacpan.org/pod/Test%3A%3ABuilder), [Test::Most](https://metacpan.org/pod/Test%3A%3AMost)
+
+## Author
+
+Nigel Horne, `<njh at nigelhorne.com>`
+
+## Licence and Copyright
+
+Copyright 2026 Nigel Horne.
+
+Usage is subject to the GPL2 licence terms.
+If you use it,
+please let me know.
