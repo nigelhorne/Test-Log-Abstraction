@@ -2,8 +2,8 @@ use strict;
 use warnings;
 
 use Test::Most;
-use Test::Log::Abstraction;
 use Test::Builder;
+use_ok('Test::Log::Abstraction');
 
 # prove -v exports TEST_VERBOSE=1, which would make every message print;
 # these tests control verbosity explicitly.

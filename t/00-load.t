@@ -39,7 +39,7 @@ is($logger->count(), 1, 'original unaffected by clone');
 # TEST_VERBOSE drives the default verbosity
 {
 	local $ENV{'TEST_VERBOSE'} = 1;
-	my $v = Test::Log::Abstraction->new();
+	my $v = new_ok('Test::Log::Abstraction');
 	is($v->verbose(), 1, 'TEST_VERBOSE enables verbose mode');
 }
 
