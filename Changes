@@ -1,5 +1,23 @@
 Revision history for Test-Log-Abstraction
 
+0.002.0
+	Fixed: a clone ignored a new diag option; an option called 'messages'
+		replaced the capture; a self-referential structure recursed forever;
+		Test::Log::Abstraction::new(%opts) took the first option as the class;
+		class-method calls died with "Can't use string as a HASH ref"
+	Fixed: logging no longer changes $@ or $!, and fields are copied at log
+		time, as in Log::Abstraction
+	Added level(), is_<level>(), flush() and lang(); level methods return
+		the logger; messages() returns a copy
+	Added failure diagnostics listing the captured messages
+	Added translatable messages (en, de, fr, zh) with lang, country and
+		i18n options, and %config defaults
+	Arguments are validated with Params::Validate::Strict; internals are
+		private (Sub::Private) or protected (Sub::Protected)
+	A lone array reference is a list of message parts and a trailing
+		newline is removed, as in Log::Abstraction
+	Requires Perl 5.14
+
 0.001.0
 	First draft: test double for Log::Abstraction that captures messages
 	so tests can assert on them, replacing per-dist t/lib/MyLogger.pm

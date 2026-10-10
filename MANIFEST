@@ -7,7 +7,12 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 README.md
 t/00-load.t
+t/api.t
+t/assert.t
 t/autoload.t
 t/basic.t
 t/diag.t
+t/i18n.t
+t/lib/Capture.pm
+t/locales.t
 t/render.t
