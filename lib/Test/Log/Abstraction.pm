@@ -589,12 +589,24 @@ Readonly::Hash my %MESSAGES => (
 	},
 );
 
+# What the lang option may look like.  It is written on one line because
+# Params::Validate::Strict quotes it in its error message.  In parts:
+#   \A (?: (?i:auto)              read the locale from the environment
+#     | [A-Za-z]{2,3}             or a language code: 'de', 'eng'
+#       (?: [_.\@-] [\w.\@-]*+ )? then optionally a separator and a
+#                                 territory, codeset or modifier
+#   ) \z
+# The tail is possessive (*+): nothing after it can use characters it gave
+# back, so a long invalid value fails in one pass instead of being retried
+# at every length.
+Readonly::Scalar my $LANG_FORMAT => qr/\A(?:(?i:auto)|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*+)?)\z/;
+
 # Schema for new()'s options.  diag is not listed: _diag_rule() validates it,
 # because its messages say what a valid diag is, which a type error cannot
 Readonly::Hash my %NEW_SCHEMA => (
 	verbose => { type => 'scalar', optional => 1 },
 	level => { type => 'string', optional => 1 },
-	lang => { type => 'string', optional => 1, matches => qr/\A(?:(?i:auto)|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*)?)\z/ },
+	lang => { type => 'string', optional => 1, matches => $LANG_FORMAT },
 	country => { type => 'string', optional => 1, matches => qr/\A[A-Za-z]{2}\z/ },
 	i18n => { type => 'hashref', optional => 1 },
 );
@@ -718,7 +730,7 @@ original logger.
         verbose => { type => 'scalar', optional => 1 },
         diag => { type => ['string', 'arrayref'], optional => 1 },
         level => { type => 'string', optional => 1 },
-        lang => { type => 'string', optional => 1, matches => qr/\A(?:(?i:auto)|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*)?)\z/ },
+        lang => { type => 'string', optional => 1, matches => qr/\A(?:(?i:auto)|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*+)?)\z/ },
         country => { type => 'string', optional => 1, matches => qr/\A[A-Za-z]{2}\z/ },
         i18n => { type => 'hashref', optional => 1 },
     }
@@ -970,11 +982,14 @@ sub _validate {
 sub _reason {
 	my $error = shift;
 
-	(my $reason = defined($error) ? "$error" : '') =~ s/\s+at \S+ line \d+\.?\s*\z//s;
+	# (?<!\s) lets a match start only where a run of whitespace starts, and
+	# the possessive quantifiers never give characters back; so even a huge
+	# run of spaces is scanned once, not once per space
+	(my $reason = defined($error) ? "$error" : '') =~ s/(?<!\s)\s++at\ \S++\ line\ \d++\.?\s*+\z//sx;
 
 	# Another module reports where this file called it, which means nothing
 	# to our caller, and may do so in the middle of its text
-	$reason =~ s/\s+at \Q${\ __FILE__}\E line \d+\.?//g;
+	$reason =~ s/(?<!\s)\s++at\ \Q${\ __FILE__}\E\ line\ \d++\.?//gx;
 
 	# The text may repeat a hostile value: show control characters (such
 	# as a newline that would start a fake line of output) as escapes, and
@@ -2637,7 +2652,22 @@ sub _interpolate {
 
 	# Only data conversions are allowed: %n and vectors have no place in a
 	# message, and an unknown conversion is left as literal text
-	$template =~ s{%(?:(%)|\{(\w+)\}([-+ 0#]*\d{0,3}(?:\.\d{1,3})?[sdiufeEgGxXobc]))}{_format($1, $3, defined($2) ? $args->{$2} : undef)}ge;
+	$template =~ s{
+		%
+		(?:
+			(%)				# $1: '%%', a literal percent sign
+		|
+			\{ (\w+) \}			# $2: the placeholder's name
+			(				# $3: the sprintf conversion:
+				[-+\ 0\#]*+		#     flags, possessive: the width
+							#     below is optional, so never
+							#     needs a '0' back from here
+				\d{0,3}			#     width, at most 3 digits
+				(?: \. \d{1,3} )?		#     precision, at most 3 digits
+				[sdiufeEgGxXobc]	#     a data conversion only
+			)
+		)
+	}{_format($1, $3, defined($2) ? $args->{$2} : undef)}gex;
 
 	return $template;
 }
