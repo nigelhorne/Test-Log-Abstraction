@@ -2514,7 +2514,9 @@ sub _template {
 
 	# Overrides before built-ins, the logger's language before English
 	my $found;
-	SEARCH: foreach my $tag ($lang, $FALLBACK_LANG) {
+	# Searching English twice can find nothing new, so an English logger
+	# searches once
+	SEARCH: foreach my $tag (($lang eq $FALLBACK_LANG) ? ($lang) : ($lang, $FALLBACK_LANG)) {
 		foreach my $source ($overrides, \%MESSAGES) {
 			my $table = exists($source->{$tag}) ? $source->{$tag} : undef;
 			next if((ref($table) ne 'HASH') || !exists($table->{$key}));

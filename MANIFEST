@@ -21,5 +21,6 @@ t/integration.t
 t/lib/Capture.pm
 t/locales.t
 t/logic.t
+t/path.t
 t/render.t
 t/unit.t

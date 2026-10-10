@@ -1,6 +1,9 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	_template() searched the English tables twice for an English logger;
+		it now searches once (found by path analysis).  Added t/path.t: one
+		test per path through every routine
 	t/logic.t: complete truth tables for every compound condition (checked
 		both directly and through De Morgan's law), the logger invariant
 		checked before, during and after each operation, and contradictory
