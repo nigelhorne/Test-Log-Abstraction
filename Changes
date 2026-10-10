@@ -1,6 +1,17 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Fixed (found by t/function.t): a self-referential i18n template looped
+		forever; an object whose "" dies, or a tied hash that dies, made a
+		log call die; logging data nested over 100 deep warned; methods
+		called on undef, a plain reference or another class's object died
+		with Perl's own error; a bad pattern string gave Perl's regex error;
+		clones shared their fields with the original; $/ changed how the
+		trailing newline was removed; %c and %d mis-rendered non-numbers
+		and infinity; French plural rules were wrong for negative counts;
+		several hostile inputs warned instead of being handled
+	diag => 'ALL' and 'None' are accepted, as level names are
+	count() validates its argument
 	Fixed: French and German notices were printed as Latin-1, not UTF-8
 	Documentation rewritten in plain English, with COMMON PITFALLS,
 		ENCODING, FORMAL SPECIFICATION and STATE DIAGRAM sections

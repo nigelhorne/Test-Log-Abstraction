@@ -91,7 +91,7 @@ subtest 'encapsulation' => sub {
 
 	my $logger = Test::Log::Abstraction->new(diag => 'none');
 	throws_ok { $logger->_record('warn', ['x']) } qr/private/, '_record is private';
-	throws_ok { Test::Log::Abstraction::_stringify('x', {}) } qr/private/, '_stringify is private';
+	throws_ok { Test::Log::Abstraction::_entry('warn', ['x']) } qr/private/, '_entry is private';
 	throws_ok { $logger->i18n('no_method') } qr/protected/, 'i18n is protected';
 	is($logger->count(), 0, 'blocked call recorded nothing');
 

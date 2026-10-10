@@ -359,6 +359,7 @@ use autodie qw(:all);
 
 use Carp qw(carp croak);
 use Encode ();
+use overload ();
 use Params::Get qw(get_params);
 use Params::Validate::Strict qw(validate_strict);
 use Readonly;
@@ -379,10 +380,15 @@ BEGIN {
 	local $Sub::Private::config{'mode'} = 'enforce';
 	Sub::Private->import(qw(
 		_args _assert _at_level _build _clone _croak _diag_rule _diags
-		_entry _explain _format _interpolate _matching _object _plural _record
-		_resolve_lang _stringify _template _validate _variant
+		_entry _explain _format _interpolate _matching _object _plural _reason
+		_record _resolve_lang _template _validate _variant
 	));
 }
+
+# _stringify is deliberately not in that list.  It recurses, and Sub::Private
+# re-enters a wrapped sub with goto from inside its own file, where
+# 'recursion' warnings are on, so logging a structure more than 100 levels
+# deep would warn however this file sets its warnings.
 
 # Defaults for new(); a flat hash so Object::Configure, or a test, can
 # override any of them before loggers are created
@@ -449,7 +455,7 @@ Readonly::Hash my %COUNTRY_LANG => (
 Readonly::Hash my %PLURAL => (
 	en => sub { ($_[0] == 1) ? 'one' : 'other' },
 	de => sub { ($_[0] == 1) ? 'one' : 'other' },
-	fr => sub { ($_[0] < 2) ? 'one' : 'other' },	# French counts 0 as singular
+	fr => sub { (abs($_[0]) < 2) ? 'one' : 'other' },	# French counts 0 as singular
 	zh => sub { 'other' },	# Chinese has no grammatical plural
 );
 
@@ -567,6 +573,11 @@ Readonly::Hash my %PATTERN_SCHEMA => (
 	name => { type => 'string', optional => 1 },
 );
 
+# Schema for count()
+Readonly::Hash my %COUNT_SCHEMA => (
+	level => { type => 'string', optional => 1 },
+);
+
 # Schema for has_level()
 Readonly::Hash my %LEVEL_SCHEMA => (
 	level => { type => 'string' },
@@ -597,7 +608,8 @@ C<$ENV{VERBOSE}> is used.
 
 =item * C<diag> - which messages to print.  C<'all'>, C<'none'>, a level
 name (print that level and every more serious level), or an array
-reference of level names.  The default is C<'warning'>.
+reference of level names.  Upper or lower case does not matter.  The
+default is C<'warning'>.
 
 =item * C<level> - the level that C<level()> and the C<is_*> methods
 report.  The default is C<'trace'>, so every C<is_*> method returns 1, and
@@ -735,8 +747,10 @@ sub _args {
 	my $args = shift;
 
 	# Params::Get croaks on an odd list; a stray argument must not break a
-	# test run, so only hand it shapes that it accepts
-	my $usable = ((@{$args} == 1) && (ref($args->[0]) eq 'HASH')) || (@{$args} && !(@{$args} % 2));
+	# test run, so only hand it
+	# shapes that it accepts; an undefined key would also make it warn
+	my $keys_defined = !grep { !defined($args->[$_]) } grep { !($_ % 2) } 0 .. $#{$args};
+	my $usable = ((@{$args} == 1) && (ref($args->[0]) eq 'HASH')) || (@{$args} && !(@{$args} % 2) && $keys_defined);
 	my $params = $usable ? get_params(undef, $args) : undef;
 
 	return { %{$params || {}} };
@@ -773,7 +787,8 @@ sub _build {
 
 	# An unknown level at construction is a programming error, so fatal;
 	# level() only carps, as Log::Abstraction's does
-	my $level = lc(defined($valid->{'level'}) ? $valid->{'level'} : $config{'level'});
+	my $level = defined($valid->{'level'}) ? $valid->{'level'} : $config{'level'};
+	$level = defined($level) ? lc($level) : 'undef';
 	$self->_croak('invalid_level', { level => $level }) if(!exists($SEVERITY{$level}));
 	$self->{'level'} = $SEVERITY{$level};
 
@@ -792,7 +807,7 @@ sub _build {
 sub _clone {
 	my ($self, $overrides) = @_;
 
-	my $copy = [ map { +{ %{$_} } } @{$self->{'messages'}} ];
+	my $copy = [ map { +{ %{$_}, ($_->{'fields'} ? (fields => { %{$_->{'fields'}} }) : ()) } } @{$self->{'messages'}} ];
 	my $clone = ref($self)->_build({ %{$self->{'options'}}, %{$overrides} }, $copy);
 
 	# Runtime changes made with verbose() and level() carry over, unless the
@@ -820,11 +835,25 @@ sub _validate {
 		# Keep the validator's explanation, but not its file and line,
 		# which point inside Params::Validate::Strict, not at the caller
 		(my $reason = $@) =~ s/\A.*?validate_strict:\s*//s;
-		$reason =~ s/\s+at \S+ line \d+\.?\s*\z//s;
-		$self->_croak('invalid_argument', { reason => $reason });
+		$self->_croak('invalid_argument', { reason => _reason($reason) });
 	}
 
 	return $valid || {};
+}
+
+# _reason - strip the location from an error message
+#
+# Purpose:      An error raised inside another module names that module's
+#               file and line; the caller only needs the explanation.
+# Entry:        $error - error text, such as $@.
+# Exit:         Returns the text without a trailing ' at FILE line N.'.
+# Side effects: None.
+sub _reason {
+	my $error = shift;
+
+	(my $reason = defined($error) ? "$error" : '') =~ s/\s+at \S+ line \d+\.?\s*\z//s;
+
+	return $reason;
 }
 
 # _resolve_lang - choose the catalogue for a logger's own messages
@@ -846,7 +875,7 @@ sub _resolve_lang {
 		# exists() first: a Readonly hash croaks on autovivification
 		my $country = uc($options->{'country'});
 		$tag = exists($COUNTRY_LANG{$country}) ? $COUNTRY_LANG{$country} : $FALLBACK_LANG;
-	} elsif(lc($wanted) eq $LANG_AUTO) {
+	} elsif(defined($wanted) && (lc($wanted) eq $LANG_AUTO)) {
 		# The first set variable wins, as in POSIX setlocale()
 		($tag) = grep { defined($_) && length($_) } map { $ENV{$_} } @LOCALE_VARS;
 	} else {
@@ -886,12 +915,15 @@ sub _diag_rule {
 	}
 
 	$self->_croak('invalid_diag_type') if(ref($spec));
+	$self->_croak('invalid_diag_level', { level => 'undef' }) if(!defined($spec));
 
-	return {} if($spec eq $DIAG_NONE);
-	return { all => 1 } if($spec eq $DIAG_ALL);
-	$self->_croak('invalid_diag_level', { level => $spec }) if(!exists($SEVERITY{lc($spec)}));
+	# 'all' and 'none' are matched without regard to case, as level names are
+	my $name = lc($spec);
+	return {} if($name eq $DIAG_NONE);
+	return { all => 1 } if($name eq $DIAG_ALL);
+	$self->_croak('invalid_diag_level', { level => $spec }) if(!exists($SEVERITY{$name}));
 
-	return { threshold => $SEVERITY{lc($spec)} };
+	return { threshold => $SEVERITY{$name} };
 }
 
 =head2 trace, debug, info, notice, warn, error, fatal, critical, alert, emergency
@@ -984,7 +1016,7 @@ handler without losing the error.
 
     Message                         Meaning                       What to do
     ------------------------------  ----------------------------  ------------------------------
-    X() must be called on an        called on the class name,     Call it on a logger object
+    X() must be called on an        not called on a logger,       Call it on a logger object
     object, not on the class        not on a logger (croak)
 
 =cut
@@ -995,7 +1027,7 @@ foreach my $level (keys %SEVERITY) {
 	no strict 'refs';	## no critic (ProhibitNoStrict)
 	*{$level} = sub {
 		my $self = shift;
-		return $self->_object($level)->_record($level, \@_);
+		return _object($self, $level)->_record($level, \@_);
 	};
 }
 
@@ -1044,7 +1076,7 @@ None.
 
     Message                         Meaning                       What to do
     ------------------------------  ----------------------------  ------------------------------
-    is_X() must be called on an     called on the class name      Call it on a logger object
+    is_X() must be called on an     not called on a logger        Call it on a logger object
     object, not on the class        (croak)
 
 =cut
@@ -1054,7 +1086,7 @@ foreach my $level (@PREDICATES) {
 	no strict 'refs';	## no critic (ProhibitNoStrict)
 	*{$method} = sub {
 		my $self = shift;
-		return ($self->_object($method)->{'level'} >= $SEVERITY{$level}) ? 1 : 0;
+		return (_object($self, $method)->{'level'} >= $SEVERITY{$level}) ? 1 : 0;
 	};
 }
 
@@ -1066,11 +1098,16 @@ foreach my $level (@PREDICATES) {
 # Entry:        $self   - the invocant.
 #               $method - the public method's name, for the message.
 # Exit:         Returns $self, for chaining.
-# Side effects: Croaks with 'class_invocant' if $self is not an object.
+# Side effects: Croaks with 'class_invocant' unless $self is an object of
+#               this class or a subclass.
 sub _object {
 	my ($self, $method) = @_;
 
-	$self->_croak('class_invocant', { method => $method }) if(!Scalar::Util::blessed($self));
+	# Called as a function, because the invocant may be undef, an unblessed
+	# reference or another class's object, none of which can call methods
+	my $ok = Scalar::Util::blessed($self) && $self->isa(__PACKAGE__);
+	my $class = (defined($self) && !ref($self) && UNIVERSAL::isa($self, __PACKAGE__)) ? $self : __PACKAGE__;
+	_croak($class, 'class_invocant', { method => $method }) if(!$ok);
 
 	return $self;
 }
@@ -1106,7 +1143,8 @@ sub _record {
 #               hash reference followed one or more other arguments.
 # Side effects: None; the caller's arrays and hashes are not modified, and
 #               the fields hash is copied so that later changes to it by the
-#               caller cannot rewrite the captured history.
+#               caller cannot rewrite the captured history.  Never dies, and
+#               leaves $@ alone.
 sub _entry {
 	my ($level, $args) = @_;
 
@@ -1122,8 +1160,13 @@ sub _entry {
 	# A lone array reference is a list of message parts
 	@args = @{$args[0]} if((@args == 1) && (ref($args[0]) eq 'ARRAY'));
 
-	my $message = join('', map { _stringify($_, {}) } @args);
-	chomp($message);
+	# A part that cannot be rendered at all (a tied hash whose FETCH dies,
+	# say) is shown in Perl's plain form, so that logging never dies
+	local $@;
+	my $message = join('', map { my $part = $_; my $text = eval { _stringify($part, {}) }; defined($text) ? $text : overload::StrVal($part) } @args);
+
+	# Not chomp(): that obeys $/, which the code under test may have changed
+	$message =~ s/\n\z//;
 	$entry->{'message'} = $message;
 
 	return $entry;
@@ -1139,15 +1182,25 @@ sub _entry {
 #               hash, '[a, b]' for a plain array, $CYCLE for a reference
 #               that contains itself, and Perl's normal stringification
 #               otherwise (objects honour overloading).
-# Side effects: None.  $seen is restored on return.
+# Side effects: None.  $seen is restored on return.  Never dies or warns:
+#               an object whose overloaded "" dies is shown as Class=HASH(...).
 sub _stringify {
 	my ($value, $seen) = @_;
 
+	# Deeply nested data is legitimate; Perl's warning at depth 100 is noise
+	no warnings 'recursion';	## no critic (ProhibitNoWarnings)
+
 	return 'undef' if(!defined($value));
 
-	# Plain scalars, objects and other reference types: Perl's own form
+	# Plain scalars, objects and other reference types: Perl's own form.  An
+	# object's overloaded "" may die or return undef; neither may break a
+	# log call, so fall back to the form that ignores overloading
 	my $type = ref($value);
-	return "$value" if(($type ne 'HASH') && ($type ne 'ARRAY'));
+	if(($type ne 'HASH') && ($type ne 'ARRAY')) {
+		local $@;	# the caught error must not reach the caller
+		my $text = eval { no warnings 'uninitialized'; my $string = "$value"; $string };	## no critic (ProhibitNoWarnings)
+		return defined($text) ? $text : overload::StrVal($value);
+	}
 
 	# A structure that contains itself would otherwise recurse forever
 	my $address = Scalar::Util::refaddr($value);
@@ -1236,8 +1289,8 @@ C<no method 'name'>.
 sub AUTOLOAD {
 	my ($self, @args) = @_;
 
-	my ($name) = ($AUTOLOAD =~ /::(\w+)\z/);
-	$self->_object($name)->_record($name, \@args);
+	my ($name) = ($AUTOLOAD =~ /::([^:]+)\z/);
+	_object($self, $name)->_record($name, \@args);
 
 	return $self->_emit($self->i18n('no_method', { method => $name }));
 }
@@ -1303,7 +1356,7 @@ None.
 
     Message                         Meaning                       What to do
     ------------------------------  ----------------------------  ------------------------------
-    messages() must be called on    called on the class name      Call it on a logger object
+    messages() must be called on    not called on a logger        Call it on a logger object
     an object, not on the class     (croak)
 
 =cut
@@ -1311,7 +1364,7 @@ None.
 sub messages {
 	my $self = shift;
 
-	return [ @{$self->_object('messages')->{'messages'}} ];
+	return [ @{_object($self, 'messages')->{'messages'}} ];
 }
 
 =head2 clear
@@ -1354,7 +1407,7 @@ C<diag>, language) do not change.
 
     Message                         Meaning                       What to do
     ------------------------------  ----------------------------  ------------------------------
-    clear() must be called on an    called on the class name      Call it on a logger object
+    clear() must be called on an    not called on a logger        Call it on a logger object
     object, not on the class        (croak)
 
 =cut
@@ -1362,7 +1415,7 @@ C<diag>, language) do not change.
 sub clear {
 	my $self = shift;
 
-	@{$self->_object('clear')->{'messages'}} = ();
+	@{_object($self, 'clear')->{'messages'}} = ();
 
 	return $self;
 }
@@ -1414,15 +1467,18 @@ None.
 
     Message                         Meaning                       What to do
     ------------------------------  ----------------------------  ------------------------------
-    count() must be called on an    called on the class name      Call it on a logger object
+    count() must be called on an    not called on a logger        Call it on a logger object
     object, not on the class        (croak)
+    invalid argument: ...           the level is not a string     Give a level name
+                                    (croak)
 
 =cut
 
 sub count {
 	my ($self, $level) = @_;
 
-	my $messages = $self->_object('count')->{'messages'};
+	my $messages = _object($self, 'count')->{'messages'};
+	$self->_validate(\%COUNT_SCHEMA, { level => $level }) if(defined($level));
 
 	return defined($level) ? scalar(@{$self->_at_level($level)}) : scalar(@{$messages});
 }
@@ -1479,7 +1535,8 @@ messages are printed under it (at most 20, then a count of the others).
     ------------------------------  ----------------------------  ------------------------------
     like() needs a pattern          no pattern was given (croak)  Give a qr// or a string
     invalid argument: ...           the pattern is not a qr// or  Give a qr// or a string
-                                    a string (croak)
+                                    a string, does not compile,   that is a valid regex
+                                    or can never match (croak)
     N messages were captured:       the test failed; the stored   Compare them with the pattern
                                     messages follow (output)
 
@@ -1488,7 +1545,7 @@ messages are printed under it (at most 20, then a count of the others).
 sub like {
 	my ($self, $pattern, $name) = @_;
 
-	$self->_object('like');
+	_object($self, 'like');
 	$self->_croak('needs_pattern', { method => 'like' }) if(!defined($pattern));
 	my $valid = $self->_validate(\%PATTERN_SCHEMA, { pattern => $pattern, (defined($name) ? (name => $name) : ()) });
 
@@ -1547,7 +1604,8 @@ that matched are printed under it.
     ------------------------------  ----------------------------  ------------------------------
     unlike() needs a pattern        no pattern was given (croak)  Give a qr// or a string
     invalid argument: ...           the pattern is not a qr// or  Give a qr// or a string
-                                    a string (croak)
+                                    a string, does not compile,   that is a valid regex
+                                    or can never match (croak)
     N messages matched:             the test failed; the          Look at the listed messages
                                     matching messages follow
 
@@ -1556,7 +1614,7 @@ that matched are printed under it.
 sub unlike {
 	my ($self, $pattern, $name) = @_;
 
-	$self->_object('unlike');
+	_object($self, 'unlike');
 	$self->_croak('needs_pattern', { method => 'unlike' }) if(!defined($pattern));
 	my $valid = $self->_validate(\%PATTERN_SCHEMA, { pattern => $pattern, (defined($name) ? (name => $name) : ()) });
 	my $matches = $self->_matching($valid->{'pattern'});
@@ -1625,7 +1683,7 @@ messages are printed under it, so you can see which levels were used.
 sub has_level {
 	my ($self, $level, $name) = @_;
 
-	$self->_object('has_level');
+	_object($self, 'has_level');
 	$self->_croak('needs_level', { method => 'has_level' }) if(!defined($level));
 	my $valid = $self->_validate(\%LEVEL_SCHEMA, { level => $level, (defined($name) ? (name => $name) : ()) });
 
@@ -1686,7 +1744,7 @@ messages are printed under it.
 sub empty {
 	my ($self, $name) = @_;
 
-	my $messages = $self->_object('empty')->{'messages'};
+	my $messages = _object($self, 'empty')->{'messages'};
 
 	return $self->_assert(!@{$messages}, $name, 'captured', $messages);
 }
@@ -1697,11 +1755,18 @@ sub empty {
 # Entry:        $self    - this logger.
 #               $pattern - qr// or string.
 # Exit:         Returns an array reference of matching entries, in order.
-# Side effects: None.
+# Side effects: Croaks with 'invalid_argument' if the pattern does not
+#               compile.
 sub _matching {
 	my ($self, $pattern) = @_;
 
-	return [ grep { $_->{'message'} =~ $pattern } @{$self->{'messages'}} ];
+	# A string is compiled here, so that a malformed one, one with code in
+	# it (not allowed at run time), or one Perl warns can never match, is
+	# the caller's error and not a crash or a stray warning
+	my $regex = eval { use warnings FATAL => 'regexp'; qr/$pattern/ };
+	$self->_croak('invalid_argument', { reason => _reason($@) }) if(!defined($regex));
+
+	return [ grep { $_->{'message'} =~ $regex } @{$self->{'messages'}} ];
 }
 
 # _at_level - captured entries at one level
@@ -1811,7 +1876,7 @@ Changes the setting, when you give an argument.
 
     Message                         Meaning                       What to do
     ------------------------------  ----------------------------  ------------------------------
-    verbose() must be called on an  called on the class name      Call it on a logger object
+    verbose() must be called on an  not called on a logger        Call it on a logger object
     object, not on the class        (croak)
 
 =cut
@@ -1819,7 +1884,7 @@ Changes the setting, when you give an argument.
 sub verbose {
 	my ($self, @value) = @_;
 
-	$self->_object('verbose');
+	_object($self, 'verbose');
 	$self->{'verbose'} = ($value[0] ? 1 : 0) if(@value);
 
 	return $self->{'verbose'};
@@ -1890,7 +1955,7 @@ changes and a warning is printed.
 sub level {
 	my ($self, $name) = @_;
 
-	my $result = $self->_object('level')->{'level'};
+	my $result = _object($self, 'level')->{'level'};
 	if(defined($name)) {
 		my $severity = exists($SEVERITY{lc($name)}) ? $SEVERITY{lc($name)} : undef;
 		$self->{'level'} = $severity if(defined($severity));
@@ -1989,7 +2054,7 @@ None.
 
     Message                         Meaning                       What to do
     ------------------------------  ----------------------------  ------------------------------
-    lang() must be called on an     called on the class name      Call it on a logger object
+    lang() must be called on an     not called on a logger        Call it on a logger object
     object, not on the class        (croak)
 
 =cut
@@ -1997,7 +2062,7 @@ None.
 sub lang {
 	my $self = shift;
 
-	return $self->_object('lang')->{'lang'};
+	return _object($self, 'lang')->{'lang'};
 }
 
 =head1 PROTECTED METHODS
@@ -2197,8 +2262,12 @@ None.  It always returns a string.
 sub i18n :Protected {
 	my ($self, $key, $args) = @_;
 
+	# Documented always to return a string: an undefined key renders as '',
+	# a reference key as its string form, and arguments that are not a hash
+	# are ignored
+	$key = defined($key) ? "$key" : '';
 	my $class = ref($self) || $self;
-	my %args = (class => $class, %{$args || {}});
+	my %args = (class => $class, ((ref($args) eq 'HASH') ? %{$args} : ()));
 	my $lang = ref($self) ? $self->{'lang'} : _resolve_lang({});
 	my $template = _template($self, $lang, $key);
 
@@ -2242,17 +2311,22 @@ sub _template {
 #               consulted.
 #               $lang     - language, for its plural rules.
 # Exit:         Returns a string; '' if no form applies.
-# Side effects: None.  Each step descends one level, so it terminates.
+# Side effects: None.  Each step descends one level, and a hash already
+#               visited ends the walk, so even a cyclic template terminates.
 sub _variant {
 	my ($template, $args, $lang) = @_;
 
+	my %visited;
 	while(ref($template) eq 'HASH') {
+		# A template from the i18n option may contain itself
+		return '' if($visited{Scalar::Util::refaddr($template)}++);
 		my $gender = $args->{'gender'};
 		my $form = (defined($gender) && exists($template->{$gender})) ? $gender : _plural($template, $args->{'count'}, $lang);
 		$template = exists($template->{$form}) ? $template->{$form} : '';
 	}
 
-	return $template;
+	# A form given as undef in the i18n option renders as nothing
+	return defined($template) ? $template : '';
 }
 
 # _plural - choose a plural category for a count
@@ -2268,8 +2342,8 @@ sub _plural {
 	my ($template, $count, $lang) = @_;
 
 	# Without a numeric count there is nothing to pluralise on
-	my $numeric = defined($count) && Scalar::Util::looks_like_number($count);
-	my $rule = exists($PLURAL{$lang}) ? $PLURAL{$lang} : $PLURAL{$FALLBACK_LANG};
+	my $numeric = defined($count) && !ref($count) && Scalar::Util::looks_like_number($count);
+	my $rule = (defined($lang) && exists($PLURAL{$lang})) ? $PLURAL{$lang} : $PLURAL{$FALLBACK_LANG};
 	my $form = !$numeric ? 'other' : (($count == 0) && exists($template->{'zero'})) ? 'zero' : $rule->($count);
 
 	return exists($template->{$form}) ? $form : 'other';
@@ -2307,17 +2381,23 @@ sub _interpolate {
 #               $conversion - sprintf conversion, such as 's' or '.2f'.
 #               $value      - the value to render, or undef.
 # Exit:         Returns the rendered text.
-# Side effects: None; never warns.
+# Side effects: None; never warns or dies, and leaves $@ alone.
 sub _format {
 	my ($percent, $conversion, $value) = @_;
 
-	my $numeric = defined($value) && Scalar::Util::looks_like_number($value);
+	# Infinity and NaN look like numbers, but %d would print them as -1.
+	# References are never numbers: looks_like_number() would call an
+	# object's overloading, which may die
+	my $numeric = defined($value) && !ref($value) && Scalar::Util::looks_like_number($value) && ($value == $value) && (abs($value) != 9**9**9);
+	# An object whose overloaded "" dies is shown in plain form, as in
+	# _stringify(), so a message can always be built
+	local $@;
 	my $text = defined($percent) ? '%'
 		: !defined($value) ? 'undef'
-		: ($numeric || ($conversion =~ /[sc]\z/)) ? sprintf("%$conversion", $value)
+		: ($numeric || ($conversion =~ /s\z/)) ? eval { no warnings qw(uninitialized); sprintf("%$conversion", $value) }	## no critic (ProhibitNoWarnings)
 		: $value;
 
-	return $text;
+	return defined($text) ? $text : overload::StrVal($value);
 }
 
 # _croak - throw a translated error from the caller's point of view
@@ -2378,6 +2458,11 @@ placeholders and has no gender forms.  Modules based on gettext need
 compiled files.  Neither fits a small table with named placeholders, so
 this module has its own.  Native speakers have not yet checked the
 German, French and Chinese texts.
+
+=item * B<Slow patterns are not stopped.>  C<like> and C<unlike> run the
+pattern against every stored message.  A pattern with nested quantifiers,
+such as C<qr/(a+)+$/>, can take a very long time on some messages.  This
+module does not limit the time.
 
 =item * B<One process only.>  Messages are kept in the memory of the
 logger object.  Messages logged in a child process (after C<fork>) are not
@@ -2667,7 +2752,8 @@ and so on) never change the state.
       count, messages, lang, is_trace ... is_emergency, flush
                                 [return a value only]
       like(undef), has_level(undef), a bad argument, or any method
-      called on the class name instead of an object
+      called on something that is not a logger (the class name, undef,
+      a plain reference, or another class's object)
                                 [croak; no change]
 
     Copying (the original logger does not change):
