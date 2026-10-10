@@ -1,6 +1,8 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Added t/transaction.t: the lifecycle end to end, and new, cloning, log
+		calls and assertions broken part way are all or nothing
 	Security: invalid level, diag and method names repeated in errors and
 		warnings are now escaped and cut to 200 characters, as validator
 		errors already were; a newline in one could forge a TAP line when
