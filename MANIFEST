@@ -11,6 +11,7 @@ t/api.t
 t/assert.t
 t/autoload.t
 t/basic.t
+t/data-flow.t
 t/diag.t
 t/edge_cases.t
 t/function.t

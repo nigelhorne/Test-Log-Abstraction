@@ -30,7 +30,7 @@ use File::Spec;
 use File::Temp qw(tempdir);
 use JSON::PP ();
 use Time::HiRes ();
-use Capture qw(capture_diag);
+use Capture qw(capture_diag run_perl_script);
 
 BEGIN { use_ok('Test::Log::Abstraction') }
 
@@ -180,11 +180,11 @@ subtest 'works with any combination of related modules missing' => sub {
 		'die qq{count\n} unless $l->count() == 2;',
 		'die qq{loaded a backend\n} if $INC{q{Log/Abstraction.pm}};',
 		'print qq{ok\n};',
-	);
+	) . "\n";
 	foreach my $mask (0 .. (2**@NOT_NEEDED) - 1) {
 		my @hidden = map { $NOT_NEEDED[$_] } grep { $mask & (1 << $_) } 0 .. $#NOT_NEEDED;
 		my @hide = @hidden ? ('-MTest::Without::Module=' . join(',', @hidden)) : ();
-		my $output = run_perl(@hide, '-MTest::Log::Abstraction', '-e', $script);
+		my $output = run_perl_script("use Test::Log::Abstraction;\n$script", @hide);
 		is($output, "ok\n", 'hidden: ' . (@hidden ? join(', ', @hidden) : 'nothing'));
 	}
 };
@@ -192,36 +192,12 @@ subtest 'works with any combination of related modules missing' => sub {
 subtest 'a missing required module stops loading, with its name' => sub {
 	# Required modules are required: there is no silent fallback
 	foreach my $required (qw(Params::Validate::Strict Sub::Private Readonly)) {
-		my $output = run_perl("-MTest::Without::Module=$required", '-e', 'require Test::Log::Abstraction; print qq{loaded\n}');
+		my $output = run_perl_script("require Test::Log::Abstraction;\nprint qq{loaded\\n};\n", "-MTest::Without::Module=$required");
 		(my $file = $required) =~ s{::}{/}g;
 		like($output, qr/\Q$file.pm\E/, "without $required, loading fails and names it");
 		unlike($output, qr/^loaded$/m, '... and does not half-load');
 	}
 };
-
-# Run perl with this distribution's lib, returning everything it printed
-sub run_perl {
-	my @args = @_;
-
-	# prove -v would turn verbose mode on in the child, and its diagnostics
-	# would then be mixed into the output being checked
-	local $ENV{'TEST_VERBOSE'};
-	local $ENV{'VERBOSE'};
-	delete @ENV{qw(TEST_VERBOSE VERBOSE)};
-	my $lib = File::Spec->rel2abs('lib');
-	my $tlib = File::Spec->rel2abs('t/lib');
-	my $pid = open(my $from, '-|');
-	die "fork: $!" if(!defined($pid));
-	if(!$pid) {
-		open(STDERR, '>&', \*STDOUT) or die "dup: $!";
-		exec($^X, "-I$lib", "-I$tlib", @args) or die "exec: $!";
-	}
-	local $/;
-	my $output = <$from>;
-	close($from);
-	state_diag(child => { args => \@args, output => $output });
-	return defined($output) ? $output : '';
-}
 
 # ---------------------------------------------------------------------------
 # Drop-in replacement for Log::Abstraction

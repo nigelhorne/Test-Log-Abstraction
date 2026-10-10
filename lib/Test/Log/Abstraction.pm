@@ -280,6 +280,11 @@ call C<clear()>.
 stored entries.  Do not change them, unless you want to change what was
 captured.
 
+=item * C<new()> keeps its own copy of the C<diag> list and the C<i18n>
+tables.  Changing your array or hash afterwards does not change the
+logger.  (A part of an C<i18n> table that contains itself is left out of
+the copy; it would only ever render as an empty string.)
+
 =item * When you clone a logger with C<< $logger->new(%options) >>, each
 option replaces the old option completely.  For example,
 C<< $logger->new(i18n => { de => {...} }) >> replaces the whole C<i18n>
@@ -376,7 +381,7 @@ BEGIN {
 	local $Sub::Private::config{'mode'} = 'enforce';
 	Sub::Private->import(qw(
 		_args _assert _at_level _build _clone _croak _diag_rule _diags
-		_entry _explain _format _interpolate _matching _object _plural _reason
+		_copy_tree _entry _explain _format _interpolate _matching _object _plural _reason
 		_record _resolve_lang _template _validate _variant
 	));
 }
@@ -772,6 +777,13 @@ sub _build {
 	my $valid = $class->_validate(\%NEW_SCHEMA, $options);
 	$valid->{'diag'} = $options->{'diag'} if(exists($options->{'diag'}));
 
+	# The diag list and the i18n tables are the caller's structures; copy
+	# them, or changing them later would change this logger (and its
+	# clones).  A diag list holds names, so one level is enough, and keeps
+	# a bad element as it was for _diag_rule() to report.
+	$valid->{'diag'} = [ @{$valid->{'diag'}} ] if(ref($valid->{'diag'}) eq 'ARRAY');
+	$valid->{'i18n'} = _copy_tree($valid->{'i18n'}, {}) if(exists($valid->{'i18n'}));
+
 	# Internal state is kept apart from options, so no option name can
 	# overwrite it (an option called 'messages' once replaced the capture)
 	my $self = bless {
@@ -792,6 +804,36 @@ sub _build {
 	$self->{'level'} = $SEVERITY{$level};
 
 	return $self;
+}
+
+# _copy_tree - deep copy of plain hashes and arrays, without cycles
+#
+# Purpose:      Give a logger its own copy of option structures.
+# Entry:        $value - any value.
+#               $path  - hash reference of the addresses of the structures
+#               being copied further up this call chain.
+# Exit:         Returns the copy; anything other than a plain hash or array
+#               (strings, code, objects) is returned as it is.  A reference
+#               back to a structure on the current path becomes undef, so
+#               the copy has no cycles and is freed with the logger.  (A
+#               cyclic template renders as '' either way; see _variant.)
+# Side effects: None on $value.  $path is restored on return.
+sub _copy_tree {
+	my ($value, $path) = @_;
+
+	# Nested option tables are legitimate; Perl's warning at depth 100 is noise
+	no warnings 'recursion';	## no critic (ProhibitNoWarnings)
+
+	my $type = ref($value);
+	return $value if(($type ne 'HASH') && ($type ne 'ARRAY'));
+
+	my $address = Scalar::Util::refaddr($value);
+	return if($path->{$address});
+	local $path->{$address} = 1;
+
+	return { map { $_ => scalar(_copy_tree($value->{$_}, $path)) } keys %{$value} } if($type eq 'HASH');
+
+	return [ map { scalar(_copy_tree($_, $path)) } @{$value} ];
 }
 
 # _clone - copy a logger, as Log::Abstraction->new does on an object
@@ -878,7 +920,6 @@ sub _reason {
 sub _resolve_lang {
 	my $options = shift;
 
-	my $wanted = defined($options->{'lang'}) ? $options->{'lang'} : $config{'lang'};
 	my $tag;
 	if(defined($options->{'lang'}) && (lc($options->{'lang'}) ne $LANG_AUTO)) {
 		$tag = $options->{'lang'};
@@ -886,11 +927,13 @@ sub _resolve_lang {
 		# exists() first: a Readonly hash croaks on autovivification
 		my $country = uc($options->{'country'});
 		$tag = exists($COUNTRY_LANG{$country}) ? $COUNTRY_LANG{$country} : $FALLBACK_LANG;
-	} elsif(defined($wanted) && (lc($wanted) eq $LANG_AUTO)) {
-		# The first set variable wins, as in POSIX setlocale()
-		($tag) = grep { defined($_) && length($_) } map { $ENV{$_} } @LOCALE_VARS;
 	} else {
-		$tag = $wanted;
+		# lang => 'auto' given, or the configured default
+		my $wanted = defined($options->{'lang'}) ? $options->{'lang'} : $config{'lang'};
+		my $auto = defined($wanted) && (lc($wanted) eq $LANG_AUTO);
+
+		# The first set variable wins, as in POSIX setlocale()
+		($tag) = $auto ? (grep { defined($_) && length($_) } map { $ENV{$_} } @LOCALE_VARS) : ($wanted);
 	}
 
 	# 'de_DE.UTF-8' -> 'de'; the C and POSIX locales are English
@@ -1111,16 +1154,16 @@ foreach my $level (@PREDICATES) {
 # Exit:         Returns $self, for chaining.
 # Side effects: Croaks with 'class_invocant' unless $self is an object of
 #               this class or a subclass.
-sub _object {
+sub _object {	## no critic (RequireFinalReturn): ends in _croak(), which never returns
 	my ($self, $method) = @_;
 
 	# Called as a function, because the invocant may be undef, an unblessed
 	# reference or another class's object, none of which can call methods
-	my $ok = Scalar::Util::blessed($self) && $self->isa(__PACKAGE__);
-	my $class = (defined($self) && !ref($self) && UNIVERSAL::isa($self, __PACKAGE__)) ? $self : __PACKAGE__;
-	_croak($class, 'class_invocant', { method => $method }) if(!$ok);
+	return $self if(Scalar::Util::blessed($self) && $self->isa(__PACKAGE__));
 
-	return $self;
+	# Only on failure: which class to name in the message
+	my $class = (defined($self) && !ref($self) && UNIVERSAL::isa($self, __PACKAGE__)) ? $self : __PACKAGE__;
+	_croak($class, 'class_invocant', { method => $method });
 }
 
 # _record - capture one logged message
@@ -1982,12 +2025,13 @@ changes and a warning is printed.
 sub level {
 	my ($self, $name) = @_;
 
-	my $result = _object($self, 'level')->{'level'};
+	_object($self, 'level');
+	my $result = $self->{'level'};	# the getter's answer
 	if(defined($name)) {
 		my $severity = exists($SEVERITY{lc($name)}) ? $SEVERITY{lc($name)} : undef;
 		$self->{'level'} = $severity if(defined($severity));
 		carp($self->i18n('invalid_level', { level => $name })) if(!defined($severity));
-		$result = defined($severity) ? $self : undef;
+		$result = defined($severity) ? $self : undef;	# the setter's answer replaces it
 	}
 
 	return $result;
@@ -2169,7 +2213,8 @@ sub _emit :Protected {
 	local ($@, $!);
 	my $tb = Test::Builder->new();
 	my $handle = $tb->in_todo() ? $tb->todo_output() : $tb->failure_output();
-	my $layered = grep { defined($_) && /\A(?:utf8|encoding)/ } PerlIO::get_layers($handle);
+	# Test::Builder may have no handle at all; then nothing encodes for us
+	my $layered = defined($handle) && grep { defined($_) && /\A(?:utf8|encoding)/ } PerlIO::get_layers($handle);
 	# A flagged string is characters, which a raw handle needs as UTF-8;
 	# an unflagged string is already bytes and is printed untouched
 	$text = Encode::encode('UTF-8', $text) if(!$layered && utf8::is_utf8($text));
@@ -2382,8 +2427,9 @@ sub _plural {
 
 	# Without a numeric count there is nothing to pluralise on
 	my $numeric = defined($count) && !ref($count) && Scalar::Util::looks_like_number($count);
-	my $rule = (defined($lang) && exists($PLURAL{$lang})) ? $PLURAL{$lang} : $PLURAL{$FALLBACK_LANG};
-	my $form = !$numeric ? 'other' : (($count == 0) && exists($template->{'zero'})) ? 'zero' : $rule->($count);
+	my $form = !$numeric ? 'other'
+		: (($count == 0) && exists($template->{'zero'})) ? 'zero'
+		: ((defined($lang) && exists($PLURAL{$lang})) ? $PLURAL{$lang} : $PLURAL{$FALLBACK_LANG})->($count);
 
 	return exists($template->{$form}) ? $form : 'other';
 }
@@ -2427,13 +2473,14 @@ sub _format {
 	# Infinity and NaN look like numbers, but %d would print them as -1.
 	# References are never numbers: looks_like_number() would call an
 	# object's overloading, which may die
-	my $numeric = defined($value) && !ref($value) && Scalar::Util::looks_like_number($value) && ($value == $value) && (abs($value) != 9**9**9);
+	return '%' if(defined($percent));
+	return 'undef' if(!defined($value));
+
+	my $numeric = !ref($value) && Scalar::Util::looks_like_number($value) && ($value == $value) && (abs($value) != 9**9**9);
 	# An object whose overloaded "" dies is shown in plain form, as in
 	# _stringify(), so a message can always be built
 	local $@;
-	my $text = defined($percent) ? '%'
-		: !defined($value) ? 'undef'
-		: ($numeric || ($conversion =~ /s\z/)) ? eval { no warnings qw(uninitialized); sprintf("%$conversion", $value) }	## no critic (ProhibitNoWarnings)
+	my $text = ($numeric || ($conversion =~ /s\z/)) ? eval { no warnings qw(uninitialized); sprintf("%$conversion", $value) }	## no critic (ProhibitNoWarnings)
 		: $value;
 
 	return defined($text) ? $text : overload::StrVal($value);

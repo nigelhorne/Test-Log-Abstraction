@@ -25,7 +25,7 @@ use Cwd qw(getcwd);
 use File::Spec;
 use File::Temp qw(tempdir);
 use Time::HiRes ();
-use Capture qw(capture_diag);
+use Capture qw(capture_diag run_perl_script);
 
 use Test::Log::Abstraction;
 
@@ -428,30 +428,11 @@ foreach my \$lang (qw(en de fr zh)) {
 }
 print STDOUT 'TOUCHED: ', join(',', sort keys \%touched), "\\n";
 SCRIPT
-	my $output = run_child($script);
+	my $output = run_perl_script($script);
 	state_diag(child => $output);
 	like($output, qr/^CONTROL: unlink$/m, 'the spies do catch a call from the module (control)');
 	like($output, qr/^TOUCHED: $/m, 'no file, directory or shell builtin was called by the module');
 };
-
-# Run a perl script in a child process, returning everything it printed
-sub run_child {
-	my $script = shift;
-
-	local $ENV{'TEST_VERBOSE'};
-	local $ENV{'VERBOSE'};
-	delete @ENV{qw(TEST_VERBOSE VERBOSE)};
-	my $pid = open(my $from, '-|');
-	die "fork: $!" if(!defined($pid));
-	if(!$pid) {
-		open(STDERR, '>&', \*STDOUT) or die "dup: $!";	# so a failure explains itself
-		exec($^X, '-I' . File::Spec->rel2abs('lib'), '-e', $script) or die "exec: $!";
-	}
-	local $/;
-	my $output = <$from>;
-	close($from);
-	return defined($output) ? $output : '';
-}
 
 # ===========================================================================
 # Filesystem: hostile paths and contents are only data
@@ -491,7 +472,10 @@ subtest 'hostile paths and file contents are stored as data' => sub {
 		'whitespace only' => " \t\n \n",
 		'shell metacharacters in the name' => 'contents',
 	);
-	my %name = ('zero bytes' => 'empty', 'whitespace only' => 'blank', 'shell metacharacters in the name' => "a b;c|d\$e`f'g\"h");
+	# Windows forbids < > : " / \ | ? * in names, so it gets the shell
+	# metacharacters it does allow
+	my $hostile_name = ($^O eq 'MSWin32') ? "a b;c&d\$e`f'g^h%i!j(k)" : "a b;c|d\$e`f'g\"h&i<j>k*l?m";
+	my %name = ('zero bytes' => 'empty', 'whitespace only' => 'blank', 'shell metacharacters in the name' => $hostile_name);
 	my $logger = quiet();
 	foreach my $kind (sort keys %file) {
 		my $path = File::Spec->catfile($dir, $name{$kind});

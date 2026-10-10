@@ -235,6 +235,10 @@ but [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction) stores it 
     - `messages()` returns a new list, but the entries in it are the
     stored entries.  Do not change them, unless you want to change what was
     captured.
+    - `new()` keeps its own copy of the `diag` list and the `i18n`
+    tables.  Changing your array or hash afterwards does not change the
+    logger.  (A part of an `i18n` table that contains itself is left out of
+    the copy; it would only ever render as an empty string.)
     - When you clone a logger with `$logger->new(%options)`, each
     option replaces the old option completely.  For example,
     `$logger->new(i18n => { de => {...} })` replaces the whole `i18n`

@@ -1,6 +1,11 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Fixed (found by t/data-flow.t): new() kept the caller's diag list and
+		i18n tables by reference, so changing them later changed the logger
+		and broke its clones; an undefined output handle warned.  Removed
+		dead stores and a redundant assignment in _object, level,
+		_resolve_lang, _plural and _format
 	Fixed (found by t/edge_cases.t): output that failed (ENOSPC, EIO) leaked
 		$! into the caller; an empty method name warned and was stored as
 		'undef'; an undefined PerlIO layer warned; "invalid argument" errors

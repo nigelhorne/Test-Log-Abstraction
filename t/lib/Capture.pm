@@ -8,9 +8,11 @@ use warnings;
 use autodie qw(:all);
 
 use Exporter qw(import);
+use File::Spec;
+use File::Temp qw(tempdir);
 use Test::Builder;
 
-our @EXPORT_OK = qw(capture_diag);
+our @EXPORT_OK = qw(capture_diag run_perl_script);
 
 # capture_diag - capture diagnostics printed while running a block
 #
@@ -48,6 +50,55 @@ sub capture_diag(&) {
 	die $error if(!$ok);
 
 	return $captured;
+}
+
+# run_perl_script - run perl code in a fresh process, portably
+#
+# Purpose:      Some tests need a clean interpreter (to hide modules, or to
+#               replace builtins before anything is compiled).  A forking
+#               pipe open ('-|') does not exist on Windows, and passing a
+#               multi-line script with -e is quoted differently by every
+#               shell, so the script goes in a file and perl is started with
+#               list-form system(), which uses no shell at all.
+# Entry:        $script   - the perl code to run.
+#               @switches - extra perl switches, such as -MModule=args.
+# Exit:         Returns everything the child printed, STDOUT and STDERR
+#               together; '' if it printed nothing.
+# Side effects: Briefly points this process's STDOUT and STDERR at a file
+#               (Test::Builder keeps its own copies, so TAP is unaffected).
+#               The child runs without TEST_VERBOSE or VERBOSE, so that
+#               prove -v does not add diagnostics to what is checked.
+sub run_perl_script {
+	my ($script, @switches) = @_;
+
+	my $dir = tempdir(CLEANUP => 1);
+	my $program = File::Spec->catfile($dir, 'child.pl');
+	my $captured = File::Spec->catfile($dir, 'child.out');
+	open(my $source, '>', $program);
+	print {$source} $script;
+	close($source);
+
+	my @include = map { '-I' . File::Spec->rel2abs($_) } ('lib', File::Spec->catdir('t', 'lib'));
+	local $ENV{'TEST_VERBOSE'};
+	local $ENV{'VERBOSE'};
+	delete @ENV{qw(TEST_VERBOSE VERBOSE)};
+
+	# Send this process's output to the file while the child inherits it
+	open(my $saved_out, '>&', \*STDOUT);
+	open(my $saved_err, '>&', \*STDERR);
+	open(STDOUT, '>', $captured);
+	open(STDERR, '>&', \*STDOUT);
+	{
+		no autodie;	# a child that fails is a result to check, not an error here
+		system($^X, @include, @switches, $program);
+	}
+	open(STDOUT, '>&', $saved_out);
+	open(STDERR, '>&', $saved_err);
+
+	open(my $result, '<', $captured);
+	my $output = do { local $/; <$result> };
+	close($result);
+	return defined($output) ? $output : '';
 }
 
 1;
