@@ -272,7 +272,9 @@ C<< { a => 1 } >> in C<fields>.  An empty hash at the end is dropped.
 
 =item * When a message has C<fields>, the fields hash is copied.  But a
 hash or array B<inside> the fields is not copied.  If your code changes it
-later, the stored message changes too.
+later, the stored message changes too.  And if the fields contain the
+logger itself, the logger is never freed (a reference cycle) until you
+call C<clear()>.
 
 =item * C<messages()> returns a new list, but the entries in it are the
 stored entries.  Do not change them, unless you want to change what was
@@ -428,6 +430,10 @@ Readonly::Scalar my $FALLBACK_LANG => 'en';
 
 # Locale environment variables, most specific first, as POSIX defines them
 Readonly::Array my @LOCALE_VARS => qw(LC_ALL LC_MESSAGES LANG);
+
+# Longest explanation kept from another module's error, which may repeat
+# a hostile value of any size
+Readonly::Scalar my $MAX_REASON => 200;
 
 # How many captured messages a failing assertion lists before summarising
 Readonly::Scalar my $MAX_EXPLAIN => 20;
@@ -830,7 +836,8 @@ sub _validate {
 	if(!eval { $valid = validate_strict(schema => $schema, input => $input, unknown_parameter_handler => 'ignore'); 1 }) {
 		# Keep the validator's explanation, but not its file and line,
 		# which point inside Params::Validate::Strict, not at the caller
-		(my $reason = $@) =~ s/\A.*?validate_strict:\s*//s;
+		# The validator may nest its own messages; keep only the innermost
+		(my $reason = $@) =~ s/\A.*validate_strict:\s*//s;
 		$self->_croak('invalid_argument', { reason => _reason($reason) });
 	}
 
@@ -842,12 +849,20 @@ sub _validate {
 # Purpose:      An error raised inside another module names that module's
 #               file and line; the caller only needs the explanation.
 # Entry:        $error - error text, such as $@.
-# Exit:         Returns the text without a trailing ' at FILE line N.'.
+# Exit:         Returns the text without a trailing ' at FILE line N.',
+#               with control characters escaped, at most $MAX_REASON
+#               characters followed by '...'.
 # Side effects: None.
 sub _reason {
 	my $error = shift;
 
 	(my $reason = defined($error) ? "$error" : '') =~ s/\s+at \S+ line \d+\.?\s*\z//s;
+
+	# The text may repeat a hostile value: show control characters (such
+	# as a newline that would start a fake line of output) as escapes, and
+	# keep it short
+	$reason =~ s/([\x00-\x1F\x7F])/sprintf('\\x%02X', ord($1))/ge;
+	$reason = substr($reason, 0, $MAX_REASON) . '...' if(length($reason) > $MAX_REASON);
 
 	return $reason;
 }
@@ -1236,7 +1251,8 @@ Handle a call to a method that does not exist.
 =head3 Purpose
 
 Perl calls this when the code under test calls a method that this class
-does not have - usually a misspelt level, such as C<wran>.  Instead of
+does not have - usually a misspelt level, such as C<wran>.  Any name
+works, even an empty one (C<< $logger->$name() >> with C<$name = ''>).  Instead of
 stopping the test, the message is stored under the name that was called,
 and a notice is printed.  The notice is always printed, whatever the
 C<diag> setting, so the mistake is not hidden.
@@ -1285,7 +1301,9 @@ C<no method 'name'>.
 sub AUTOLOAD {
 	my ($self, @args) = @_;
 
-	my ($name) = ($AUTOLOAD =~ /::([^:]+)\z/);
+	# A method name can be anything, even empty: $logger->$name() with ''
+	my ($name) = ($AUTOLOAD =~ /::([^:]*)\z/);
+	$name = '' if(!defined($name));
 	_object($self, $name)->_record($name, \@args);
 
 	return $self->_emit($self->i18n('no_method', { method => $name }));
@@ -1803,8 +1821,10 @@ sub _at_level {
 sub _assert {
 	my ($self, $ok, $name, $key, $entries) = @_;
 
-	# Skip this frame and the public assertion's
+	# Skip this frame and the public assertion's; and keep the caller's
+	# $@ and $!, which reporting may change
 	local $Test::Builder::Level = $Test::Builder::Level + 2;
+	local ($@, $!);
 	my $result = Test::Builder->new()->ok($ok, $name);
 	$self->_explain($key, $entries) if(!$ok);
 
@@ -2144,9 +2164,12 @@ encoded as UTF-8 first, unless the output already has an encoding layer
 sub _emit :Protected {
 	my ($self, $text) = @_;
 
+	# Output can fail (a full disk sets $! to ENOSPC); that must not leak
+	# into the caller, which the POD promises
+	local ($@, $!);
 	my $tb = Test::Builder->new();
 	my $handle = $tb->in_todo() ? $tb->todo_output() : $tb->failure_output();
-	my $layered = grep { /\A(?:utf8|encoding)/ } PerlIO::get_layers($handle);
+	my $layered = grep { defined($_) && /\A(?:utf8|encoding)/ } PerlIO::get_layers($handle);
 	# A flagged string is characters, which a raw handle needs as UTF-8;
 	# an unflagged string is already bytes and is printed untouched
 	$text = Encode::encode('UTF-8', $text) if(!$layered && utf8::is_utf8($text));
@@ -2490,6 +2513,11 @@ seen by the parent.
 
 Each method lists its messages under C<MESSAGES>.  All messages can be
 translated or changed; see L</i18n>.
+
+The text after C<invalid argument:> explains what was wrong, and may show
+the value that was given.  It is cut to 200 characters, and control
+characters in it (such as a newline) are shown as C<\xNN>.  So a hostile
+value cannot make an error message enormous, or add lines to the output.
 
 =head1 SEE ALSO
 

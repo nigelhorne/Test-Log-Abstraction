@@ -1,6 +1,11 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Fixed (found by t/edge_cases.t): output that failed (ENOSPC, EIO) leaked
+		$! into the caller; an empty method name warned and was stored as
+		'undef'; an undefined PerlIO layer warned; "invalid argument" errors
+		showed the validator's internal file and line and repeated hostile
+		values in full - they are now one line of at most 200 characters
 	Added t/integration.t: end-to-end workflows, including parity with the
 		real Log::Abstraction, permission drops and upstream failures
 	POD: shows how to pass Object::Configure settings to new()

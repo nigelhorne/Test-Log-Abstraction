@@ -17,6 +17,8 @@ requires 'strict';
 requires 'warnings';
 
 on 'test' => sub {
+	requires 'B';
+	requires 'Cwd';
 	requires 'Errno';
 	requires 'Exporter';
 	requires 'Test::Builder::Tester';

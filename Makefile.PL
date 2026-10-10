@@ -34,6 +34,8 @@ WriteMakefile(
 		'strict' => 0,
 	},
 	TEST_REQUIRES => {
+		'B' => 0,
+		'Cwd' => 0,
 		'Errno' => 0,
 		'Exporter' => 0,
 		'Test::Builder::Tester' => 0,

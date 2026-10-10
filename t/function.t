@@ -39,6 +39,7 @@ Readonly::Scalar my $CLASS => 'Test::Log::Abstraction';
 Readonly::Scalar my $FILE => __FILE__;
 Readonly::Scalar my $CYCLE => '(cycle)';
 Readonly::Scalar my $MAX_EXPLAIN => 20;	# entries listed by a failing assertion
+Readonly::Scalar my $MAX_REASON => 200;	# characters kept from another module's error
 Readonly::Scalar my $DEEP => 5_000;	# nesting depth for recursion tests
 Readonly::Scalar my $WIDE => 10_000;	# element count for size tests
 Readonly::Scalar my $HUGE => 1_000_000;	# characters in a very long message
@@ -324,10 +325,10 @@ subtest '_validate: every failure becomes invalid_argument' => sub {
 subtest '_reason: hostile errors' => sub {
 	like(Test::Log::Abstraction::_reason({ code => 1 }), qr/\AHASH\(0x[0-9a-f]+\)\z/, 'hash exception');
 	is(Test::Log::Abstraction::_reason(bless({}, 'Local::Text')), 'overloaded text', 'exception object with a text form');
-	is(Test::Log::Abstraction::_reason("line one\nline two at x line 1.\n"), "line one\nline two", 'multi-line message keeps its lines');
+	is(Test::Log::Abstraction::_reason("line one\nline two at x line 1.\n"), 'line one\\x0Aline two', 'a newline is escaped, so the error stays on one line');
 	is(Test::Log::Abstraction::_reason(' at x line 1.'), '', 'nothing but a location');
 	is(Test::Log::Abstraction::_reason('at x line 1.'), 'at x line 1.', 'no space before at: not a location');
-	is(length(Test::Log::Abstraction::_reason(('x' x $HUGE) . ' at y line 2.')), $HUGE, 'huge message');
+	is(Test::Log::Abstraction::_reason(('x' x $HUGE) . ' at y line 2.'), ('x' x $MAX_REASON) . '...', 'huge message is cut short');
 };
 
 subtest '_reason: removes only a trailing location' => sub {
