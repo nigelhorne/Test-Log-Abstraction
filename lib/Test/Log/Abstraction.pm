@@ -1219,8 +1219,14 @@ sub _entry {
 	local $@;
 	my $message = join('', map { my $part = $_; my $text = eval { _stringify($part, {}) }; defined($text) ? $text : overload::StrVal($part) } @args);
 
-	# Not chomp(): that obeys $/, which the code under test may have changed
-	$message =~ s/\n\z//;
+	# Remove one trailing newline.  chomp() obeys $/, which the code under
+	# test may have changed, so it is fixed here; and unlike s/// or
+	# substr(), chomp() does not warn on a malformed UTF-8 string in Perl
+	# 5.36 and earlier
+	{
+		local $/ = "\n";
+		chomp($message);
+	}
 	$entry->{'message'} = $message;
 
 	return $entry;

@@ -28,6 +28,10 @@ Readonly::Scalar my $CLASS => 'Test::Log::Abstraction';
 Readonly::Scalar my $FILE => __FILE__;
 Readonly::Scalar my $SENTINEL => 'caller value';
 Readonly::Scalar my $ALARM => 300;	# seconds; long enough never to fire
+
+# Windows emulates alarm(), and its alarm(0) always reports 0 seconds left,
+# so there the timer can only be checked for not having been replaced
+Readonly::Scalar my $CAN_READ_ALARM => ($^O ne 'MSWin32');
 Readonly::Scalar my $MAX_LISTED => 20;	# entries a failing assertion lists (POD: like)
 Readonly::Scalar my $SHOW_STATE => $ENV{'TEST_VERBOSE'};
 
@@ -186,18 +190,24 @@ sub leaves_globals_alone {
 	my ($name, $code) = @_;
 
 	my $timer = alarm($ALARM);
-	local $SIG{'ALRM'} = sub { fail("$name: alarm fired") };
+	my $handler = sub { fail("$name: alarm fired") };
+	local $SIG{'ALRM'} = $handler;
 	local $_ = $SENTINEL;
 	$@ = $SENTINEL;
 	$! = ENOENT;
 	$code->();
 	my ($error, $errno, $topic) = ($@, $! + 0, $_);
+	my $handler_after = $SIG{'ALRM'};
 	my $left = alarm(0);
 
 	is($error, $SENTINEL, "$name: \$@ untouched");
 	is($errno, ENOENT, "$name: \$! untouched");
 	is($topic, $SENTINEL, "$name: \$_ untouched");
-	ok(($left > 0) && ($left <= $ALARM), "$name: alarm() timer still running ($left s left)");
+	is($handler_after, $handler, "$name: alarm() handler untouched");
+	SKIP: {
+		skip('alarm(0) cannot report the time left on this platform', 1) if(!$CAN_READ_ALARM);
+		ok(($left > 0) && ($left <= $ALARM), "$name: alarm() timer still running ($left s left)");
+	}
 	return;
 }
 

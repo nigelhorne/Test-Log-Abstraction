@@ -37,6 +37,12 @@ BEGIN { use_ok('Test::Log::Abstraction') }
 Readonly::Scalar my $CLASS => 'Test::Log::Abstraction';
 Readonly::Scalar my $TIMEOUT => 0.2;	# seconds the importer waits upstream
 Readonly::Scalar my $LATENCY => 3;	# seconds a slow upstream would take
+
+# Whether a deadline can interrupt a slow upstream here.  On Windows,
+# Time::HiRes::alarm() is not implemented, and perlport says signals there
+# cannot interrupt a blocking call anyway, so the slow-upstream cases run
+# only where a timeout can actually fire
+Readonly::Scalar my $CAN_TIME_OUT => ($^O ne 'MSWin32') && eval { Time::HiRes::alarm(0); 1 };
 Readonly::Scalar my $BUDGET => 1.5;	# a workflow must finish within this
 Readonly::Scalar my $ROWS => 3;	# lines in each fixture file
 Readonly::Scalar my $PAYLOAD_PREVIEW => 64;	# characters of a bad payload logged
@@ -117,12 +123,12 @@ sub os_text {
 		my $log = $self->{'logger'};
 		my $raw = eval {
 			local $SIG{'ALRM'} = sub { die "timeout\n" };
-			Time::HiRes::alarm($self->{'timeout'});
+			Time::HiRes::alarm($self->{'timeout'}) if($self->{'timeout'});
 			my $response = $self->{'service'}->get($id);
-			Time::HiRes::alarm(0);
+			Time::HiRes::alarm(0) if($self->{'timeout'});
 			$response;
 		};
-		Time::HiRes::alarm(0);
+		Time::HiRes::alarm(0) if($self->{'timeout'});
 		if(!defined($raw)) {
 			my $error = $@ || "no response\n";
 			chomp($error);
@@ -217,7 +223,7 @@ subtest 'same workflow, same record, as the real Log::Abstraction' => sub {
 	my %record;
 	foreach my $which ('real', 'double') {
 		my $logger = ($which eq 'real') ? Log::Abstraction->new(logger => [], level => 'debug') : quiet_logger();
-		my $importer = Local::Importer->new(logger => $logger, service => $upstream, timeout => $TIMEOUT);
+		my $importer = Local::Importer->new(logger => $logger, service => $upstream, timeout => ($CAN_TIME_OUT ? $TIMEOUT : undef));
 		$importer->import_file($good);
 		$importer->import_file(File::Spec->catfile($dir, 'missing.csv'));
 		$importer->run(1, 2);
@@ -336,7 +342,7 @@ subtest 'calls from the code under test arrive unchanged' => sub {
 	my $logger = quiet_logger();
 	my $error_spy = spy "${CLASS}::error";
 	my $upstream = service(7 => sub { '[1,2]' });
-	Local::Importer->new(logger => $logger, service => $upstream, timeout => $TIMEOUT)->fetch(7);
+	Local::Importer->new(logger => $logger, service => $upstream, timeout => ($CAN_TIME_OUT ? $TIMEOUT : undef))->fetch(7);
 	my @calls = $error_spy->();
 	restore_all();
 
@@ -415,29 +421,34 @@ subtest 'slow, failing and malformed upstream' => sub {
 		array => sub { '[]' },
 		huge => sub { $huge },
 	);
-	my $importer = Local::Importer->new(logger => $logger, service => $upstream, timeout => $TIMEOUT);
+	my $importer = Local::Importer->new(logger => $logger, service => $upstream, timeout => ($CAN_TIME_OUT ? $TIMEOUT : undef));
 	my $get_spy = spy 'Local::Service::get';
 
 	my $started = Time::HiRes::time();
-	my $ok = $importer->run(qw(ok slow down empty rubbish array huge));
+	my @ids = grep { $CAN_TIME_OUT || ($_ ne 'slow') } qw(ok slow down empty rubbish array huge);
+	my $ok = $importer->run(@ids);
 	my $elapsed = Time::HiRes::time() - $started;
 	my @asked = map { $_->[2] } $get_spy->();
 	restore_all();
 	state_diag(messages => $logger->messages());
 
-	is($ok, 1, 'one good record out of seven');
+	is($ok, 1, 'one good record out of ' . scalar(@ids));
 	ok($elapsed < $BUDGET, sprintf('finished in %.2fs: the slow upstream did not hang the run', $elapsed));
-	is_deeply(\@asked, [qw(ok slow down empty rubbish array huge)], 'every id was still tried, in order');
-	$logger->like(qr/\Aupstream failed for slow: timeout\z/, 'timeout logged');
+	is_deeply(\@asked, \@ids, 'every id was still tried, in order');
+	SKIP: {
+		skip('a deadline cannot interrupt a slow call on this platform', 1) if(!$CAN_TIME_OUT);
+		$logger->like(qr/\Aupstream failed for slow: timeout\z/, 'timeout logged');
+	}
 	$logger->like(qr/\Aupstream failed for down: 503 Service Unavailable\z/, 'upstream error logged');
 	$logger->like(qr/\Aupstream failed for empty: no response\z/, 'empty response logged');
 	is($logger->count('error'), 3, 'three malformed payloads logged as errors');
 	my @payloads = map { $_->{'fields'}->{'payload'} } grep { $_->{'level'} eq 'error' } @{$logger->messages()};
 	is_deeply(\@payloads, ["\xff\xfe<html>", '[]', '{' x $PAYLOAD_PREVIEW], 'raw payloads kept byte for byte, as fields');
-	$logger->like(qr/\Arun complete: 1 of 7\z/, 'the run completed');
+	$logger->like(qr/\Arun complete: 1 of \Q@{[ scalar(@ids) ]}\E\z/, 'the run completed');
 };
 
 subtest 'logging inside a timeout handler does not disturb it' => sub {
+	plan(skip_all => 'a deadline cannot interrupt a slow call on this platform') if(!$CAN_TIME_OUT);
 	my $logger = quiet_logger();
 	my $upstream = service(slow => sub {
 		# The upstream logs while the importer's deadline is running
@@ -447,14 +458,14 @@ subtest 'logging inside a timeout handler does not disturb it' => sub {
 		return '{}';
 	});
 	my $started = Time::HiRes::time();
-	Local::Importer->new(logger => $logger, service => $upstream, timeout => $TIMEOUT)->fetch('slow');
+	Local::Importer->new(logger => $logger, service => $upstream, timeout => ($CAN_TIME_OUT ? $TIMEOUT : undef))->fetch('slow');
 	ok(Time::HiRes::time() - $started < $BUDGET, 'the deadline still fired on time');
 	$logger->like(qr/timeout/, 'and the timeout was logged after it');
 };
 
 subtest 'a failing output channel does not cascade' => sub {
 	my $logger = new_ok($CLASS => [diag => 'all', verbose => 0]);
-	my $importer = Local::Importer->new(logger => $logger, service => service(1 => sub { 'bad' }), timeout => $TIMEOUT);
+	my $importer = Local::Importer->new(logger => $logger, service => service(1 => sub { 'bad' }), timeout => ($CAN_TIME_OUT ? $TIMEOUT : undef));
 
 	# Test output that dies: the failure reaches the caller as an error,
 	# but what was logged before it is kept and the logger stays usable
@@ -472,7 +483,7 @@ subtest 'a failing output channel does not cascade' => sub {
 
 subtest 'documented return types across a workflow' => sub {
 	my $logger = quiet_logger();
-	my $importer = Local::Importer->new(logger => $logger, service => service(1 => sub { '{"a":1}' }), timeout => $TIMEOUT);
+	my $importer = Local::Importer->new(logger => $logger, service => service(1 => sub { '{"a":1}' }), timeout => ($CAN_TIME_OUT ? $TIMEOUT : undef));
 	returns_ok($importer->fetch(1), { type => 'hashref' }, 'the consumer got its data');
 	returns_ok($logger->messages(), { type => 'arrayref' }, 'messages()');
 	returns_ok($logger->count(), { type => 'integer', min => 0 }, 'count()');
