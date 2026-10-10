@@ -57,6 +57,7 @@ schemas\.yml$
 \bcover_html\b
 \bcoverage_history\b
 \bcovered\b
+nytprof.out
 
 # Avoid MYMETA files
 ^MYMETA\.

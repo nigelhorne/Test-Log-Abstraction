@@ -1588,7 +1588,8 @@ The logger, so you can chain calls.
 =head3 Side Effects
 
 All stored messages are deleted.  The settings (C<verbose>, C<level>,
-C<diag>, language) do not change.
+C<diag>, language) do not change.  On a logger with no messages, it does
+nothing, so it is safe to call before every step.
 
 =head3 EXAMPLE
 
@@ -3049,6 +3050,9 @@ and so on) never change the state.
     |                 EMPTY                   |<----------------+
     |  messages = ()                          |                 |
     +-----------------------------------------+                 |
+         |       ^                                              |
+         |       | clear()                                      |
+         +-------+ [nothing to delete; return the logger]       |
          |                                                      |
          | trace() ... emergency(), warning() ... panic()       | clear()
          | [store the message; print it if the diag rule        | [delete all

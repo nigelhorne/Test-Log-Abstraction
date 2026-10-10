@@ -25,5 +25,6 @@ t/path.t
 t/performance.t
 t/regex.t
 t/transaction.t
+t/transition.t
 t/render.t
 t/unit.t
