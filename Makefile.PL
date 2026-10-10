@@ -22,6 +22,8 @@ WriteMakefile(
 		'autodie' => 0,
 		'Carp' => 0,
 		'Encode' => 0,
+		'Hash::Util' => 0,
+		'List::Util' => 1.33,	# any()
 		'IPC::System::Simple' => 0,	# autodie qw(:all)
 		'Params::Get' => 0.17,
 		'Params::Validate::Strict' => 0.41,	# union types

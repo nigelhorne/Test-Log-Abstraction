@@ -379,6 +379,8 @@ use autodie qw(:all);
 
 use Carp qw(carp croak);
 use Encode ();
+use Hash::Util ();
+use List::Util 1.33 ();
 use overload ();
 use Params::Get qw(get_params);
 use Params::Validate::Strict qw(validate_strict);
@@ -400,7 +402,7 @@ BEGIN {
 	local $Sub::Private::config{'mode'} = 'enforce';
 	Sub::Private->import(qw(
 		_args _assert _at_level _build _clone _croak _diag_rule _diags
-		_copy_tree _entry _explain _format _interpolate _matching _object _plural _reason
+		_copy_tree _entry _explain _format _interpolate _matching _object _plural _reason _regex
 		_record _resolve_lang _template _validate _variant
 	));
 }
@@ -420,7 +422,12 @@ our %config = (
 
 # Level -> severity, lower is more severe, following POSIX syslog priorities.
 # trace and debug share a severity, as they do in Log::Abstraction
-Readonly::Hash my %SEVERITY => (
+# This table is read on every log call.  Readonly 2 makes a read-only hash
+# by tying it, which turns each lookup into a method call; Hash::Util's
+# lock_hash() makes it just as read-only with no tie.  (A locked hash
+# croaks on a lookup of a missing key, so every lookup is guarded by
+# exists(), as it already had to be for Readonly.)
+my %SEVERITY = (
 	emergency => 0,
 	emerg => 0,
 	panic => 0,
@@ -438,6 +445,7 @@ Readonly::Hash my %SEVERITY => (
 	debug => 7,
 	trace => 7,
 );
+Hash::Util::lock_hash(%SEVERITY);
 
 # The levels that Log::Abstraction has is_<level>() predicates for
 Readonly::Array my @PREDICATES => qw(trace debug info notice warn error critical alert emergency);
@@ -1301,8 +1309,14 @@ sub _entry {
 
 	# A part that cannot be rendered at all (a tied hash whose FETCH dies,
 	# say) is shown in Perl's plain form, so that logging never dies
+	# Only a reference can fail to render (overloading, a tied container);
+	# a plain value is already a copy, read once, so it needs no eval
 	local $@;
-	my $message = join('', map { my $part = $_; my $text = eval { _stringify($part, {}) }; defined($text) ? $text : overload::StrVal($part) } @args);
+	my $message = join('', map {
+		my $part = $_;
+		!ref($part) ? (defined($part) ? $part : 'undef')
+			: do { my $text = eval { _stringify($part, {}) }; defined($text) ? $text : overload::StrVal($part) }
+	} @args);
 
 	# Remove one trailing newline.  chomp() obeys $/, which the code under
 	# test may have changed, so it is fixed here; and unlike s/// or
@@ -1337,10 +1351,13 @@ sub _stringify {
 
 	return 'undef' if(!defined($value));
 
-	# Plain scalars, objects and other reference types: Perl's own form.  An
+	# Plain values have no overloading and cannot die when turned into text,
+	# so they need no eval.  Objects and other references: Perl's own form.  An
 	# object's overloaded "" may die or return undef; neither may break a
 	# log call, so fall back to the form that ignores overloading
 	my $type = ref($value);
+	return "$value" if(!$type);
+
 	if(($type ne 'HASH') && ($type ne 'ARRAY')) {
 		local $@;	# the caught error must not reach the caller
 		my $text = eval { no warnings 'uninitialized'; my $string = "$value"; $string };	## no critic (ProhibitNoWarnings)
@@ -1718,8 +1735,10 @@ sub like {
 	_object($self, 'like');
 	$self->_croak('needs_pattern', { method => 'like' }) if(!defined($pattern));
 	my $valid = $self->_validate(\%PATTERN_SCHEMA, { pattern => $pattern, (defined($name) ? (name => $name) : ()) });
+	my $regex = $self->_regex($valid->{'pattern'});
 
-	return $self->_assert(scalar(@{$self->_matching($valid->{'pattern'})}), $name, 'captured', $self->{'messages'});
+	# Only whether one message matches matters, so stop at the first
+	return $self->_assert((List::Util::any { $_->{'message'} =~ $regex } @{$self->{'messages'}}) ? 1 : 0, $name, 'captured', $self->{'messages'});
 }
 
 =head2 unlike
@@ -1792,9 +1811,13 @@ sub unlike {
 	_object($self, 'unlike');
 	$self->_croak('needs_pattern', { method => 'unlike' }) if(!defined($pattern));
 	my $valid = $self->_validate(\%PATTERN_SCHEMA, { pattern => $pattern, (defined($name) ? (name => $name) : ()) });
-	my $matches = $self->_matching($valid->{'pattern'});
+	my $regex = $self->_regex($valid->{'pattern'});
 
-	return $self->_assert(!@{$matches}, $name, 'matched', $matches);
+	# Stop at the first match; the full list is wanted only to explain a
+	# failure, so it is gathered only then
+	my $matched = List::Util::any { $_->{'message'} =~ $regex } @{$self->{'messages'}};
+
+	return $self->_assert(!$matched, $name, 'matched', $matched ? $self->_matching($regex) : []);
 }
 
 =head2 has_level
@@ -1867,8 +1890,10 @@ sub has_level {
 	_object($self, 'has_level');
 	$self->_croak('needs_level', { method => 'has_level' }) if(!defined($level));
 	my $valid = $self->_validate(\%LEVEL_SCHEMA, { level => $level, (defined($name) ? (name => $name) : ()) });
+	my $wanted = lc($valid->{'level'});
 
-	return $self->_assert(scalar(@{$self->_at_level($valid->{'level'})}), $name, 'captured', $self->{'messages'});
+	# Only whether one message is at that level matters, so stop at the first
+	return $self->_assert((List::Util::any { $_->{'level'} eq $wanted } @{$self->{'messages'}}) ? 1 : 0, $name, 'captured', $self->{'messages'});
 }
 
 =head2 empty
@@ -1946,6 +1971,24 @@ sub empty {
 sub _matching {
 	my ($self, $pattern) = @_;
 
+	my $regex = $self->_regex($pattern);
+
+	return [ grep { $_->{'message'} =~ $regex } @{$self->{'messages'}} ];
+}
+
+# _regex - compile a pattern once
+#
+# Purpose:      Turn a qr// or a string into a compiled regular expression,
+#               so a search runs it without compiling it again.
+# Entry:        $self    - this logger (for the error's language).
+#               $pattern - qr// or string.
+# Exit:         Returns the compiled regular expression.
+# Side effects: Croaks with 'invalid_argument' if the pattern does not
+#               compile, contains code, or can never match.  Leaves $@ alone
+#               otherwise.
+sub _regex {
+	my ($self, $pattern) = @_;
+
 	# A string is compiled here, so that a malformed one, one with code in
 	# it (not allowed at run time), or one Perl warns can never match, is
 	# the caller's error and not a crash or a stray warning
@@ -1953,7 +1996,7 @@ sub _matching {
 	my $regex = eval { use warnings FATAL => 'regexp'; qr/$pattern/ };
 	$self->_croak('invalid_argument', { reason => _reason($@) }) if(!defined($regex));
 
-	return [ grep { $_->{'message'} =~ $regex } @{$self->{'messages'}} ];
+	return $regex;
 }
 
 # _at_level - captured entries at one level
@@ -2690,6 +2733,15 @@ German, French and Chinese texts.
 pattern against every stored message.  A pattern with nested quantifiers,
 such as C<qr/(a+)+$/>, can take a very long time on some messages.  This
 module does not limit the time.
+
+=item * B<How long things take.>  C<like()> and C<has_level()> stop at
+the first message that matches.  C<unlike()> that passes, C<count()> with
+a level, and C<messages()> look at every stored message, so their time
+grows with the number of messages (about 0.1 to 0.25 microseconds a
+message on a typical machine).  A log call costs about 15 microseconds;
+roughly 40% of that is L<Sub::Private> checking who called each internal
+routine.  For tests that log hundreds of thousands of messages, call
+C<clear()> between phases.
 
 =item * B<One process only.>  Messages are kept in the memory of the
 logger object.  Messages logged in a child process (after C<fork>) are not

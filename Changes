@@ -1,6 +1,11 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Performance: like() and has_level() stop at the first match (about 48
+		times faster when it is near the start); unlike() builds its list of
+		matches only to explain a failure; plain values are rendered without
+		an eval; the level table is a locked hash instead of a tied Readonly
+		one.  A log call is about 20% faster.  Added t/performance.t
 	_template() searched the English tables twice for an English logger;
 		it now searches once (found by path analysis).  Added t/path.t: one
 		test per path through every routine

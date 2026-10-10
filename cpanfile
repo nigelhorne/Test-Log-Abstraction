@@ -5,6 +5,8 @@ requires 'perl', '5.014';
 requires 'autodie';
 requires 'Carp';
 requires 'Encode';
+requires 'Hash::Util';
+requires 'List::Util', '1.33';
 requires 'IPC::System::Simple';
 requires 'Params::Get', '0.17';
 requires 'Params::Validate::Strict', '0.41';

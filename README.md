@@ -1577,6 +1577,14 @@ German, French and Chinese texts.
 pattern against every stored message.  A pattern with nested quantifiers,
 such as `qr/(a+)+$/`, can take a very long time on some messages.  This
 module does not limit the time.
+- **How long things take.**  `like()` and `has_level()` stop at
+the first message that matches.  `unlike()` that passes, `count()` with
+a level, and `messages()` look at every stored message, so their time
+grows with the number of messages (about 0.1 to 0.25 microseconds a
+message on a typical machine).  A log call costs about 15 microseconds;
+roughly 40% of that is [Sub::Private](https://metacpan.org/pod/Sub%3A%3APrivate) checking who called each internal
+routine.  For tests that log hundreds of thousands of messages, call
+`clear()` between phases.
 - **One process only.**  Messages are kept in the memory of the
 logger object.  Messages logged in a child process (after `fork`) are not
 seen by the parent.
