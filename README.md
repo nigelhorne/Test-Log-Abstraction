@@ -141,6 +141,18 @@ To choose the levels, use the `diag` option of `new()`:
 serious level.
 - A list, such as `['info', 'error']` - print only these levels.
 
+Put exactly: a message is printed when **any one** of these is true, and
+not otherwise:
+
+- 1. Verbose mode is on.
+- 2. `diag` is `'all'`.
+- 3. `diag` is a list, and the message's level name is in it.
+- 4. `diag` is a level name, the message's level is a known level, and
+its number is the same as, or lower than, that level's number.
+
+So a misspelt level (caught by ["AUTOLOAD"](#autoload)) is printed only by rules 1 to
+3; and `'none'` or an empty list means only rule 1 can apply.
+
 When a test method fails, the messages that explain the failure are printed
 under it.  So you can see why it failed without running the test again.
 

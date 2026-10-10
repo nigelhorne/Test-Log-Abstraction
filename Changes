@@ -1,6 +1,11 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Simplified the decisions in new(), _args(), _diag_rule(), _diags(),
+		count(), level() and AUTOLOAD: each test is made once, cheap tests
+		first, with no unreachable checks; behaviour is unchanged.  Added
+		t/logic.t, one proof per outcome of each decision
+	POD: the rule for which messages are printed is stated exactly
 	Fixed (found by t/domain.t): "invalid argument" explanations could
 		name a line inside this module; lang => 'AUTO' was rejected though
 		'auto' is case-insensitive; empty() did not validate its test name

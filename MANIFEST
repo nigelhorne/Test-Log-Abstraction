@@ -20,5 +20,6 @@ t/i18n.t
 t/integration.t
 t/lib/Capture.pm
 t/locales.t
+t/logic.t
 t/render.t
 t/unit.t

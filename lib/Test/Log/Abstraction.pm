@@ -143,6 +143,25 @@ serious level.
 
 =back
 
+Put exactly: a message is printed when B<any one> of these is true, and
+not otherwise:
+
+=over 4
+
+=item 1. Verbose mode is on.
+
+=item 2. C<diag> is C<'all'>.
+
+=item 3. C<diag> is a list, and the message's level name is in it.
+
+=item 4. C<diag> is a level name, the message's level is a known level, and
+its number is the same as, or lower than, that level's number.
+
+=back
+
+So a misspelt level (caught by L</AUTOLOAD>) is printed only by rules 1 to
+3; and C<'none'> or an empty list means only rule 1 can apply.
+
 When a test method fails, the messages that explain the failure are printed
 under it.  So you can see why it failed without running the test again.
 
@@ -765,8 +784,12 @@ sub new {
 	return $class->_clone(_args(\@args)) if(Scalar::Util::blessed($class));
 
 	# Function-call form, Test::Log::Abstraction::new(...): whatever was
-	# passed first is an option, not a class name
-	if(!defined($class) || ref($class) || !UNIVERSAL::isa($class, __PACKAGE__)) {
+	# passed first is an option, not a class name.
+	#   Premise 1: UNIVERSAL::isa() is false, without a warning, for undef,
+	#              '', any unblessed reference and any unrelated name.
+	#   Premise 2: objects were dealt with above.
+	#   So: one isa() test separates "a class name" from "an option".
+	if(!UNIVERSAL::isa($class, __PACKAGE__)) {
 		unshift @args, $class if(defined($class));
 		$class = __PACKAGE__;
 	}
@@ -786,11 +809,13 @@ sub new {
 sub _args {
 	my $args = shift;
 
-	# Params::Get croaks on an odd list; a stray argument must not break a
-	# test run, so only hand it
-	# shapes that it accepts; an undefined key would also make it warn
-	my $keys_defined = !grep { !defined($args->[$_]) } grep { !($_ % 2) } 0 .. $#{$args};
-	my $usable = ((@{$args} == 1) && (ref($args->[0]) eq 'HASH')) || (@{$args} && !(@{$args} % 2) && $keys_defined);
+	# Params::Get croaks on an odd list, and warns on an undefined key; a
+	# stray argument must not break a test run, so only hand it the two
+	# shapes it accepts.  The key check is the costly test, so it runs last,
+	# only for a non-empty, even-length list.
+	my $count = scalar(@{$args});
+	my $usable = (($count == 1) && (ref($args->[0]) eq 'HASH'))
+		|| ($count && !($count % 2) && !grep { !defined($args->[$_]) } grep { !($_ % 2) } 0 .. $count - 1);
 	my $params = $usable ? get_params(undef, $args) : undef;
 
 	return { %{$params || {}} };
@@ -830,7 +855,9 @@ sub _build {
 
 	# The language first, so that the checks below report in it
 	$self->{'lang'} = _resolve_lang($valid);
-	$self->{'diag_rule'} = $self->_diag_rule(exists($valid->{'diag'}) ? $valid->{'diag'} : $config{'diag'});
+	# Absent and undef both mean "the default", and _diag_rule() turns undef
+	# into $config{diag}; so the value is passed as it is
+	$self->{'diag_rule'} = $self->_diag_rule($valid->{'diag'});
 
 	# An unknown level at construction is a programming error, so fatal;
 	# level() only carps, as Log::Abstraction's does
@@ -1002,21 +1029,25 @@ sub _diag_rule {
 	if(ref($spec) eq 'ARRAY') {
 		my %levels;
 		foreach my $level (@{$spec}) {
-			my $name = defined($level) ? lc($level) : 'undef';
-			$self->_croak('invalid_diag_level', { level => defined($level) ? $level : 'undef' }) if(!exists($SEVERITY{$name}));
-			$levels{$name} = 1;
+			# 'undef' is not a level name, so an undefined element fails the
+			# same test as any other bad name, and is reported as 'undef'
+			my $shown = defined($level) ? $level : 'undef';
+			$self->_croak('invalid_diag_level', { level => $shown }) if(!exists($SEVERITY{lc($shown)}));
+			$levels{lc($shown)} = 1;
 		}
 		return { levels => \%levels };
 	}
 
 	$self->_croak('invalid_diag_type') if(ref($spec));
-	$self->_croak('invalid_diag_level', { level => 'undef' }) if(!defined($spec));
 
-	# 'all' and 'none' are matched without regard to case, as level names are
-	my $name = lc($spec);
+	# 'all' and 'none' are matched without regard to case, as level names
+	# are.  An undefined default is shown as 'undef', which is neither 'all',
+	# 'none' nor a level name, so it falls through to the error below.
+	my $shown = defined($spec) ? $spec : 'undef';
+	my $name = lc($shown);
 	return {} if($name eq $DIAG_NONE);
 	return { all => 1 } if($name eq $DIAG_ALL);
-	$self->_croak('invalid_diag_level', { level => $spec }) if(!exists($SEVERITY{$name}));
+	$self->_croak('invalid_diag_level', { level => $shown }) if(!exists($SEVERITY{$name}));
 
 	return { threshold => $SEVERITY{$name} };
 }
@@ -1339,12 +1370,14 @@ sub _diags {
 
 	my $rule = $self->{'diag_rule'};
 
-	# Verbose or 'all' print everything; a list prints just its levels; a
-	# threshold prints known levels at least that severe
-	my $listed = $rule->{'levels'} && $rule->{'levels'}->{$level};
-	my $severe = defined($rule->{'threshold'}) && exists($SEVERITY{$level}) && ($SEVERITY{$level} <= $rule->{'threshold'});
-
-	return ($self->{'verbose'} || $rule->{'all'} || $listed || $severe) ? 1 : 0;
+	# Any one of four reasons is enough to print, so they are joined with
+	# || and stop at the first that holds: verbose or 'all' print everything;
+	# a list prints just its levels; a threshold prints known levels at least
+	# that severe.  This runs for every message, so the cheap tests go first.
+	return ($self->{'verbose'}
+		|| $rule->{'all'}
+		|| ($rule->{'levels'} && $rule->{'levels'}->{$level})
+		|| (defined($rule->{'threshold'}) && exists($SEVERITY{$level}) && ($SEVERITY{$level} <= $rule->{'threshold'}))) ? 1 : 0;
 }
 
 =head2 AUTOLOAD
@@ -1407,9 +1440,11 @@ names.  The message is stored under the name in lower case.
 sub AUTOLOAD {
 	my ($self, @args) = @_;
 
-	# A method name can be anything, even empty: $logger->$name() with ''
+	# A method name can be anything, even empty: $logger->$name() with ''.
+	#   Premise 1: Perl always sets $AUTOLOAD to "Package::name".
+	#   Premise 2: ([^:]*) matches any name after the last '::', even ''.
+	#   So: $name is always defined, and needs no fallback.
 	my ($name) = ($AUTOLOAD =~ /::([^:]*)\z/);
-	$name = '' if(!defined($name));
 	_object($self, $name)->_record($name, \@args);
 
 	return $self->_emit($self->i18n('no_method', { method => $name }));
@@ -1601,10 +1636,13 @@ names).  Invalid: any reference.
 sub count {
 	my ($self, $level) = @_;
 
-	my $messages = _object($self, 'count')->{'messages'};
-	$self->_validate(\%COUNT_SCHEMA, { level => $level }) if(defined($level));
+	_object($self, 'count');
 
-	return defined($level) ? scalar(@{$self->_at_level($level)}) : scalar(@{$messages});
+	# Without a level every message counts; with one, it is checked once and
+	# then trusted (the schema has proved it is a string)
+	my $messages = defined($level) ? $self->_at_level($self->_validate(\%COUNT_SCHEMA, { level => $level })->{'level'}) : $self->{'messages'};
+
+	return scalar(@{$messages});
 }
 
 =head2 like
@@ -2116,12 +2154,18 @@ sub level {
 	my ($self, $name) = @_;
 
 	_object($self, 'level');
-	my $result = $self->{'level'};	# the getter's answer
-	if(defined($name)) {
-		my $severity = exists($SEVERITY{lc($name)}) ? $SEVERITY{lc($name)} : undef;
-		$self->{'level'} = $severity if(defined($severity));
-		carp($self->i18n('invalid_level', { level => $name })) if(!defined($severity));
-		$result = defined($severity) ? $self : undef;	# the setter's answer replaces it
+
+	# Exactly one of three cases holds: no name (get), a level name (set),
+	# or anything else (warn).  Each sets the result once; the last leaves
+	# it undef, as Log::Abstraction returns.
+	my $result;
+	if(!defined($name)) {
+		$result = $self->{'level'};
+	} elsif(exists($SEVERITY{lc($name)})) {
+		$self->{'level'} = $SEVERITY{lc($name)};
+		$result = $self;
+	} else {
+		carp($self->i18n('invalid_level', { level => $name }));
 	}
 
 	return $result;
