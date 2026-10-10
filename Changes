@@ -1,6 +1,10 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	t/logic.t: complete truth tables for every compound condition (checked
+		both directly and through De Morgan's law), the logger invariant
+		checked before, during and after each operation, and contradictory
+		inputs shown to be refused before anything changes
 	Simplified the decisions in new(), _args(), _diag_rule(), _diags(),
 		count(), level() and AUTOLOAD: each test is made once, cheap tests
 		first, with no unreachable checks; behaviour is unchanged.  Added

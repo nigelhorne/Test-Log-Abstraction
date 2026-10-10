@@ -17,6 +17,9 @@ use Test::Most;
 use Test::Warnings qw(warning);
 use Readonly;
 use Capture qw(printed);
+use Test::Mockingbird;
+use Encode ();
+use Scalar::Util qw(looks_like_number);
 
 use Test::Log::Abstraction;
 
@@ -29,6 +32,7 @@ Readonly::Scalar my $FILE => __FILE__;
 Readonly::Scalar my $MOST_SEVERE => 0;
 Readonly::Scalar my $LEAST_SEVERE => 7;
 Readonly::Scalar my $MIDDLE => 3;	# error: a threshold with levels either side
+Readonly::Scalar my $ENV_LOCALE => 'zh_CN.UTF-8';	# a locale whose language differs from every other input
 Readonly::Hash my %NAME_FOR => (0 => 'emergency', 1 => 'alert', 2 => 'critical', 3 => 'error', 4 => 'warning', 5 => 'notice', 6 => 'info', 7 => 'debug');
 Readonly::Array my @PREDICATES => qw(trace debug info notice warn error critical alert emergency);
 Readonly::Hash my %SEVERITY => (
@@ -39,6 +43,9 @@ Readonly::Hash my %SEVERITY => (
 {
 	package Local::Sub;
 	our @ISA = ('Test::Log::Abstraction');
+
+	package Local::Other;
+	sub new { return bless {}, shift }
 }
 
 sub quiet {
@@ -230,6 +237,270 @@ subtest 'IsLevel: true exactly when severity <= threshold' => sub {
 			my $want = ($SEVERITY{$level} <= $threshold) ? 1 : 0;
 			is($logger->$method(), $want, "threshold $threshold, severity $SEVERITY{$level}: $want");
 		}
+	}
+};
+
+# ===========================================================================
+# Truth tables: every combination of every compound condition
+#
+# For each, the expected value is computed twice - as the OR of its parts,
+# and through De Morgan's law as NOT (all parts false) - and both must
+# equal what the code does.
+# ===========================================================================
+
+# Expected value of an OR, computed both ways; dies if they disagree, which
+# would mean the table itself is wrong
+sub any_of {
+	my @parts = @_;
+
+	my $or = (grep { $_ } @parts) ? 1 : 0;
+	my $de_morgan = (!grep { $_ } @parts) ? 0 : 1;	# !(a || b) == (!a && !b)
+	die "truth table error\n" if($or != $de_morgan);
+	return $or;
+}
+
+# Print = V || A || L || (T && K && S): verbose, rule 'all', level listed,
+# and a threshold (T) with the level known (K) and severe enough (S).
+# 2 x 2 x 2 x 2 rules, times three kinds of level: 48 rows.
+subtest 'truth table: _diags, all 48 rows' => sub {
+	my $self = quiet();
+	my %level = (at => $NAME_FOR{$MIDDLE}, over => $NAME_FOR{$MIDDLE + 1}, unknown => 'nolevel');
+	foreach my $verbose (0, 1) { foreach my $all (0, 1) { foreach my $listed (0, 1) { foreach my $threshold (0, 1) {
+		foreach my $kind (sort keys %level) {
+			my $name = $level{$kind};
+			$self->{'verbose'} = $verbose;
+			$self->{'diag_rule'} = { ($all ? (all => 1) : ()), ($listed ? (levels => { $name => 1 }) : ()), ($threshold ? (threshold => $MIDDLE) : ()) };
+			my $want = any_of($verbose, $all, $listed, ($threshold && ($kind eq 'at')));
+			is($self->_diags($name), $want, "V=$verbose A=$all L=$listed T=$threshold level $kind: $want");
+		}
+	} } } }
+};
+
+# Language = lang if a code; else country's; else the environment's if
+# 'auto' (given, or the default); else the default.  3 x 2 x 2 x 2 = 24 rows.
+subtest 'truth table: _resolve_lang, all 24 rows' => sub {
+	foreach my $lang (undef, 'auto', 'fr') { foreach my $country (undef, 'DE') {
+		foreach my $default ('en', 'auto') { foreach my $env (undef, $ENV_LOCALE) {
+			local $Test::Log::Abstraction::config{'lang'} = $default;
+			local @ENV{qw(LC_ALL LC_MESSAGES LANG)} = ($env, undef, undef);
+			delete @ENV{qw(LC_MESSAGES LANG)};
+			delete $ENV{'LC_ALL'} if(!defined($env));
+			my $auto = (defined($lang) && ($lang eq 'auto')) || (!defined($lang) && ($default eq 'auto'));
+			my $want = (defined($lang) && ($lang ne 'auto')) ? 'fr'
+				: defined($country) ? 'de'
+				: ($auto && defined($env)) ? 'zh'
+				: 'en';
+			my %options = ((defined($lang) ? (lang => $lang) : ()), (defined($country) ? (country => $country) : ()));
+			my $label = join(' ', map { defined($_) ? $_ : '-' } $lang, $country, $default, $env);
+			is(Test::Log::Abstraction::_resolve_lang(\%options), $want, "lang/country/default/env = $label: $want");
+		} }
+	} }
+};
+
+# Usable = S || (N && E && K): a single hash; or a non-empty, even list
+# whose keys are all defined.  Of the 16 rows, only these 6 can exist:
+# S implies one defined argument (N=1, E=0, K=1), and an empty list is
+# even with no keys (N=0 implies E=1, K=1).
+subtest 'truth table: _args, every possible row' => sub {
+	my @rows = (
+		[1, 1, 0, 1, [{ a => 1 }]],
+		[0, 0, 1, 1, []],
+		[0, 1, 0, 1, ['x']],
+		[0, 1, 0, 0, [undef]],
+		[0, 1, 1, 1, [a => 1]],
+		[0, 1, 1, 0, [undef, 1]],
+	);
+	foreach my $row (@rows) {
+		my ($s, $n, $e, $k, $args) = @{$row};
+		my $want = any_of($s, ($n && $e && $k));
+		my $got = %{Test::Log::Abstraction::_args($args)} ? 1 : 0;
+		is($got, $want, "S=$s N=$n E=$e K=$k: " . ($want ? 'passed on' : 'refused'));
+	}
+};
+
+# Form = 'other' unless numeric; 'zero' if the count is 0 and the form
+# exists; else the language's category if it exists; else 'other'.
+# numeric x zero x has-zero x has-one = 16 rows.
+subtest 'truth table: _plural, all 16 rows' => sub {
+	foreach my $numeric (0, 1) { foreach my $is_zero (0, 1) { foreach my $has_zero (0, 1) { foreach my $has_one (0, 1) {
+		my $count = !$numeric ? 'many' : $is_zero ? 0 : 1;
+		my $template = { other => 1, ($has_zero ? (zero => 1) : ()), ($has_one ? (one => 1) : ()) };
+		my $category = ($numeric && ($count == 1)) ? 'one' : 'other';	# English
+		my $want = !$numeric ? 'other'
+			: ($is_zero && $has_zero) ? 'zero'
+			: exists($template->{$category}) ? $category
+			: 'other';
+		is(Test::Log::Abstraction::_plural($template, $count, 'en'), $want, "numeric=$numeric zero=$is_zero has-zero=$has_zero has-one=$has_one: $want");
+	} } } }
+};
+
+# Text = '%' for %%; 'undef' for no value; sprintf when the value is a
+# plain finite number or the conversion is %s; the value itself otherwise.
+# 2 x 5 x 2 = 20 rows.
+subtest 'truth table: _format, all 20 rows' => sub {
+	my %value = (undef => undef, reference => [1], number => 42, text => 'abc', infinite => 9**9**9);
+	foreach my $percent (undef, '%') { foreach my $kind (sort keys %value) { foreach my $conversion ('s', 'd') {
+		my $v = $value{$kind};
+		my $finite_number = ($kind eq 'number');
+		my $want = defined($percent) ? '%'
+			: !defined($v) ? 'undef'
+			: ($finite_number || ($conversion eq 's')) ? sprintf("%$conversion", $v)
+			: $v;
+		my $got = Test::Log::Abstraction::_format($percent, $conversion, $v);
+		is($got, $want, (defined($percent) ? '%%' : 'value') . " $kind %$conversion");
+	} } }
+};
+
+# Encode = NOT layered AND character string.  2 x 2 = 4 rows.
+subtest 'truth table: _emit encoding, all 4 rows' => sub {
+	my $self = quiet();
+	my %got;
+	foreach my $layered (0, 1) { foreach my $flagged (0, 1) {
+		my $text = $flagged ? "\x{2603}" : "\xe2\x98\x83";
+		mock 'PerlIO::get_layers' => sub { return $layered ? ('unix', 'utf8') : ('unix') };
+		mock 'Test::Builder::diag' => sub { $got{"$layered$flagged"} = $_[1]; return 1 };
+		$self->_emit($text);
+		restore_all();
+	} }
+	foreach my $layered (0, 1) { foreach my $flagged (0, 1) {
+		my $encode = (!$layered && $flagged) ? 1 : 0;
+		# Encoded or already bytes: UTF-8 bytes; left alone as characters: the character
+		my $want = ($encode || !$flagged) ? "\xe2\x98\x83" : "\x{2603}";
+		is($got{"$layered$flagged"}, $want, "layered=$layered character string=$flagged: " . ($encode ? 'encoded' : 'unchanged'));
+	} }
+};
+
+# Accept = blessed AND isa; so, by De Morgan, refuse = NOT blessed OR NOT isa.
+# 2 x 2 = 4 rows.
+subtest 'truth table: _object, all 4 rows' => sub {
+	my %invocant = ('11' => quiet(), '10' => bless({}, 'Local::Other'), '01' => $CLASS, '00' => {});
+	foreach my $key (sort keys %invocant) {
+		my ($blessed, $isa) = split(//, $key);
+		my $accept = ($blessed && $isa) ? 1 : 0;
+		my $refuse = (!$blessed || !$isa) ? 1 : 0;
+		is($accept, 1 - $refuse, "blessed=$blessed isa=$isa: De Morgan holds");
+		my $got = eval { Test::Log::Abstraction::_object($invocant{$key}, 'm'); 1 } ? 1 : 0;
+		is($got, $accept, "blessed=$blessed isa=$isa: " . ($accept ? 'accepted' : 'refused'));
+	}
+};
+
+# Fields = two or more arguments AND the last a plain hash AND it is not
+# empty.  2 x 2 x 2 = 8 rows.
+subtest 'truth table: _entry fields, all 8 rows' => sub {
+	foreach my $several (0, 1) { foreach my $plain (0, 1) { foreach my $full (0, 1) {
+		my $last = $plain ? ($full ? { k => 1 } : {}) : bless(($full ? { k => 1 } : {}), 'Local::Other');
+		my @args = (($several ? ('m') : ()), $last);
+		my $want = ($several && $plain && $full) ? 1 : 0;
+		my $entry = Test::Log::Abstraction::_entry('info', \@args);
+		is(exists($entry->{'fields'}) ? 1 : 0, $want, "several=$several plain=$plain non-empty=$full: " . ($want ? 'fields' : 'no fields'));
+	} } }
+};
+
+# Parts = exactly one argument AND it is an array reference.  2 x 2 = 4 rows.
+subtest 'truth table: _entry message parts, all 4 rows' => sub {
+	foreach my $one (0, 1) { foreach my $array (0, 1) {
+		my $arg = $array ? ['p', 'q'] : 'pq';
+		my @args = $one ? ($arg) : ($arg, '!');
+		my $flatten = ($one && $array) ? 1 : 0;
+		my $want = !$one ? ($array ? '[p, q]!' : 'pq!') : 'pq';	# one argument: 'pq' either way, by different routes
+		is(Test::Log::Abstraction::_entry('info', \@args)->{'message'}, $want, "one=$one array=$array: " . ($flatten ? 'flattened' : 'as written'));
+	} }
+};
+
+# ===========================================================================
+# The logger invariant: before, during and after every operation
+#
+#   messages is an array of entries, each with a defined level and message
+#   (and a hash of fields if any); level is a whole number 0 to 7; verbose
+#   is 0 or 1; lang is a language code; the diag rule has one of its four
+#   shapes.
+# ===========================================================================
+
+# Every way the invariant is broken, as text; an empty list means it holds
+sub violations {
+	my $self = shift;
+
+	my @broken;
+	push @broken, 'messages is not an array' if(ref($self->{'messages'}) ne 'ARRAY');
+	foreach my $entry (@{$self->{'messages'} || []}) {
+		push @broken, 'entry without level or message' if(!defined($entry->{'level'}) || !defined($entry->{'message'}));
+		push @broken, 'fields is not a hash' if(exists($entry->{'fields'}) && (ref($entry->{'fields'}) ne 'HASH'));
+	}
+	push @broken, 'level out of range' if(!defined($self->{'level'}) || ($self->{'level'} !~ /\A[0-7]\z/));
+	push @broken, 'verbose is not 0 or 1' if(!defined($self->{'verbose'}) || ($self->{'verbose'} !~ /\A[01]\z/));
+	push @broken, 'lang is not a code' if(!defined($self->{'lang'}) || ($self->{'lang'} !~ /\A[a-z]{2,3}\z/));
+	my $rule = $self->{'diag_rule'};
+	my $shape = join(',', sort keys %{$rule || {}});
+	push @broken, "diag rule has shape '$shape'" if(!grep { $shape eq $_ } ('', 'all', 'levels', 'threshold'));
+	return \@broken;
+}
+
+{
+	package Local::Inspector;
+	# Logged as a message part: checks the logger while it is mid-log
+	use overload '""' => sub { my $self = shift; push @{$self->{'seen'}}, main::violations($self->{'logger'}); return 'inspected' }, fallback => 1;
+}
+
+subtest 'invariant: before, during and after each operation' => sub {
+	my $logger = $CLASS->new(diag => ['error'], verbose => 0, level => 'warn');
+	my %operation = (
+		'log' => sub { $logger->info('x', { k => 1 }) },
+		'log, printed' => sub { printed { $logger->error('x') } },
+		'unknown method' => sub { printed { $logger->wran('x') } },
+		'set level' => sub { $logger->level('alert') },
+		'rejected level' => sub { warning { $logger->level('bogus') } },
+		'set verbose' => sub { $logger->verbose(1); $logger->verbose(0) },
+		'clone' => sub { $logger = $logger->new(lang => 'de') },
+		'failing assertion' => sub { my $tb = Test::Builder->new(); $tb->todo_start('expected'); printed { $logger->like(qr/never/) }; $tb->todo_end() },
+		'clear' => sub { $logger->clear() },
+	);
+	foreach my $name (sort keys %operation) {
+		is_deeply(violations($logger), [], "$name: holds before");
+
+		# During: an object logged mid-operation inspects the logger, and so
+		# does the output channel while the message is being printed
+		my $inspector = bless { logger => $logger, seen => [] }, 'Local::Inspector';
+		my @at_output;
+		mock 'Test::Builder::diag' => sub { push @at_output, violations($logger); return 1 };
+		printed { $logger->debug($inspector) };
+		$operation{$name}->();
+		restore_all();
+		is_deeply($inspector->{'seen'}, [[]], "$name: holds while a message is being built");
+		is_deeply([grep { @{$_} } @at_output], [], "$name: holds while output is printed");
+
+		is_deeply(violations($logger), [], "$name: holds after");
+	}
+};
+
+# ===========================================================================
+# Contradictions: inputs that break a documented rule are refused at once,
+# before anything changes or is printed
+# ===========================================================================
+
+subtest 'contradictions are refused before any effect' => sub {
+	my $logger = $CLASS->new(diag => 'all', verbose => 0);
+	$logger->clear();
+	my @cases = (
+		["'all' means every level, so it cannot be one level in a list", sub { $CLASS->new(diag => ['info', 'all']) }, q{invalid diag level 'all'}],
+		['a severity number is not a level name', sub { $CLASS->new(level => '3') }, q{invalid syslog level '3'}],
+		['a country code is two letters', sub { $CLASS->new(country => 'DEU') }, undef],
+		['a level to count is a name, not a list', sub { $logger->count(['warn']) }, q{invalid argument: Parameter 'level' must be a string}],
+		['a pattern must compile', sub { $logger->like('[') }, undef],
+		['a pattern is required', sub { $logger->unlike() }, 'unlike() needs a pattern'],
+		['a level is required', sub { $logger->has_level() }, 'has_level() needs a level name'],
+		['logging needs a logger, not the class', sub { $CLASS->error('x') }, 'error() must be called on an object, not on the class'],
+		['a test name is text', sub { $logger->empty({}) }, q{invalid argument: Parameter 'name' must be a string}],
+	);
+	my $test = Test::Builder->new();
+	foreach my $case (@cases) {
+		my ($premise, $code, $message) = @{$case};
+		my $tests_before = $test->current_test();
+		my $out = printed { throws_ok { $code->() } ($message ? at_caller($message) : qr/\A\Q$CLASS: invalid argument: \E/), "$premise: refused" };
+		my $reported = $test->current_test() - $tests_before;	# read before any other test is counted
+		is($out =~ /\Q$CLASS\E/ ? 1 : 0, 0, "$premise: no message printed by the logger");
+		is($reported, 1, "$premise: only throws_ok itself reported a test");
+		is($logger->count(), 0, "$premise: nothing stored");
+		is_deeply(violations($logger), [], "$premise: invariant intact");
 	}
 };
 
