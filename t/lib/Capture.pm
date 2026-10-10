@@ -12,7 +12,7 @@ use File::Spec;
 use File::Temp qw(tempdir);
 use Test::Builder;
 
-our @EXPORT_OK = qw(capture_diag run_perl_script);
+our @EXPORT_OK = qw(capture_diag failing printed run_perl_script);
 
 # capture_diag - capture diagnostics printed while running a block
 #
@@ -50,6 +50,39 @@ sub capture_diag(&) {
 	die $error if(!$ok);
 
 	return $captured;
+}
+
+# printed - what a block printed through diag(), comparable exactly
+#
+# Purpose:      capture_diag() returns the text as Test::Builder wrote it,
+#               which inside a subtest is indented; this removes that
+#               indentation so the text can be compared exactly.
+# Entry:        $code - code reference to run.
+# Exit:         Returns the captured text.
+# Side effects: As capture_diag().
+sub printed(&) {
+	my $code = shift;
+
+	(my $out = capture_diag(\&{$code})) =~ s/^[ ]+#/#/mg;
+	return $out;
+}
+
+# failing - run an assertion that is meant to fail, without failing the file
+#
+# Purpose:      Check what a failing assertion returns and prints.
+# Entry:        $code - code reference that makes the assertion.
+# Exit:         Returns ($result, $output): what the code returned, and
+#               what was printed (as printed() returns it).
+# Side effects: Adds one TODO test result to the TAP output.
+sub failing {
+	my $code = shift;
+
+	my $tb = Test::Builder->new();
+	my $result;
+	$tb->todo_start('expected to fail: checking its output');
+	my $out = printed { $result = $code->() };
+	$tb->todo_end();
+	return ($result, $out);
 }
 
 # run_perl_script - run perl code in a fresh process, portably

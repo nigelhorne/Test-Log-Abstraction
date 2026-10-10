@@ -567,7 +567,7 @@ Readonly::Hash my %MESSAGES => (
 Readonly::Hash my %NEW_SCHEMA => (
 	verbose => { type => 'scalar', optional => 1 },
 	level => { type => 'string', optional => 1 },
-	lang => { type => 'string', optional => 1, matches => qr/\A(?:auto|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*)?)\z/ },
+	lang => { type => 'string', optional => 1, matches => qr/\A(?:(?i:auto)|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*)?)\z/ },
 	country => { type => 'string', optional => 1, matches => qr/\A[A-Za-z]{2}\z/ },
 	i18n => { type => 'hashref', optional => 1 },
 );
@@ -581,6 +581,11 @@ Readonly::Hash my %PATTERN_SCHEMA => (
 # Schema for count()
 Readonly::Hash my %COUNT_SCHEMA => (
 	level => { type => 'string', optional => 1 },
+);
+
+# Schema for empty(): only a test name
+Readonly::Hash my %NAME_SCHEMA => (
+	name => { type => 'string', optional => 1 },
 );
 
 # Schema for has_level()
@@ -686,10 +691,41 @@ original logger.
         verbose => { type => 'scalar', optional => 1 },
         diag => { type => ['string', 'arrayref'], optional => 1 },
         level => { type => 'string', optional => 1 },
-        lang => { type => 'string', optional => 1, matches => qr/\A(?:auto|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*)?)\z/ },
+        lang => { type => 'string', optional => 1, matches => qr/\A(?:(?i:auto)|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*)?)\z/ },
         country => { type => 'string', optional => 1, matches => qr/\A[A-Za-z]{2}\z/ },
         i18n => { type => 'hashref', optional => 1 },
     }
+
+Domains (valid / invalid / boundaries):
+
+    verbose   valid: any plain value, Perl truth decides ('0', '' and undef
+              are off; '00', '0.0' and ' ' are on); absent: from
+              TEST_VERBOSE or VERBOSE.  Invalid: any reference.
+    diag      valid: 'all' or 'none' (any case); a level name (any case),
+              which prints severity 0 (emergency) up to that level's
+              number, 7 (trace) being every level; an array reference of
+              level names, [] printing nothing and duplicates counting
+              once; absent or undef: $config{diag}.  Invalid: any other
+              string, including '' and numbers such as '4'; a list
+              element that is not a level name (or is 'all'); a hash,
+              code or scalar reference.
+    level     valid: the 16 level names, any case, setting 0 (emergency)
+              to 7 (trace); absent or undef: $config{level}.  Invalid:
+              '', numbers (even 0 to 7), any other name.
+    lang      valid: 'auto' (any case); 2 or 3 ASCII letters, then
+              optionally one of _ . @ - and anything else ('de',
+              'eng', 'de_DE.UTF-8', 'zh-Hant').  A code with no catalogue
+              ('ja', 'eng') gives 'en'.  Invalid: 1 letter, 4 or more
+              letters, '', digits, a non-ASCII letter in the code, any
+              whitespace or newline.
+    country   valid: exactly 2 ASCII letters, any case; one with no
+              mapping ('JP') gives 'en'.  Invalid: 1 or 3 letters, '',
+              digits, non-ASCII letters.
+    i18n      valid: a hash reference (even empty).  Invalid: any other
+              type.
+
+An "invalid argument" explanation is at most 200 characters; one longer is
+cut to 200 and ends with "...".
 
 =head4 Output
 
@@ -891,7 +927,8 @@ sub _validate {
 # Purpose:      An error raised inside another module names that module's
 #               file and line; the caller only needs the explanation.
 # Entry:        $error - error text, such as $@.
-# Exit:         Returns the text without a trailing ' at FILE line N.',
+# Exit:         Returns the text without a trailing ' at FILE line N.', or
+#               any ' at THIS-FILE line N.' anywhere in it,
 #               with control characters escaped, at most $MAX_REASON
 #               characters followed by '...'.
 # Side effects: None.
@@ -899,6 +936,10 @@ sub _reason {
 	my $error = shift;
 
 	(my $reason = defined($error) ? "$error" : '') =~ s/\s+at \S+ line \d+\.?\s*\z//s;
+
+	# Another module reports where this file called it, which means nothing
+	# to our caller, and may do so in the middle of its text
+	$reason =~ s/\s+at \Q${\ __FILE__}\E line \d+\.?//g;
 
 	# The text may repeat a hostile value: show control characters (such
 	# as a newline that would start a fake line of output) as escapes, and
@@ -1062,6 +1103,15 @@ handler without losing the error.
         messages => { type => 'arrayref', position => 0, slurp => 1 },
     }
 
+Domains: any number of arguments (0 gives an empty message) of any
+kind and length.  Exactly one trailing newline is removed (so "m\n\n"
+keeps one).  A trailing hash after one or more values is fields; an empty
+one is dropped; a blessed hash is part of the message.  Text may be ASCII,
+decoded text in any script (accents, CJK, emoji and emoji sequences,
+combining marks, right-to-left text, zero-width characters) or bytes; it
+is stored with its length unchanged.  See L</ENCODING> for how it is
+printed.
+
 =head4 Output
 
     { type => 'object', isa => 'Test::Log::Abstraction' }
@@ -1121,6 +1171,10 @@ None.
 =head4 Input
 
     {}
+
+Domains: no arguments.  Each predicate is 1 exactly when its level's
+number is at or below the logger's level: at level 0 (emergency) only
+is_emergency is 1; at level 7 (trace) all are 1.
 
 =head4 Output
 
@@ -1332,6 +1386,9 @@ C<no method 'name'>.
         messages => { type => 'arrayref', position => 0, slurp => 1 },
     }
 
+Domains: any method name, including '', non-ASCII names and very long
+names.  The message is stored under the name in lower case.
+
 =head4 Output
 
     { type => 'object', isa => 'Test::Log::Abstraction' }
@@ -1522,6 +1579,10 @@ None.
         level => { type => 'string', optional => 1, position => 0 },
     }
 
+Domains: undef counts every message; a string counts messages at that
+level, any case ('', '0' and unknown names give 0; aliases are separate
+names).  Invalid: any reference.
+
 =head4 Output
 
     { type => 'integer', min => 0 }
@@ -1587,6 +1648,12 @@ messages are printed under it (at most 20, then a count of the others).
         pattern => { type => ['regex', 'string'], position => 0 },
         name => { type => 'string', optional => 1, position => 1 },
     }
+
+Domains: pattern - a qr// or a string, which is compiled as a regular
+expression ('' matches every message).  Invalid: undef, any other
+reference, a string that does not compile or can never match.  name -
+undef, or any string (including '' and non-ASCII text).  Invalid: a
+reference.
 
 =head4 Output
 
@@ -1658,6 +1725,9 @@ that matched are printed under it.
         pattern => { type => ['regex', 'string'], position => 0 },
         name => { type => 'string', optional => 1, position => 1 },
     }
+
+Domains: as for L</like>.  Note that '' matches every message, so
+unlike('') fails whenever anything was logged.
 
 =head4 Output
 
@@ -1731,6 +1801,10 @@ messages are printed under it, so you can see which levels were used.
         name => { type => 'string', optional => 1, position => 1 },
     }
 
+Domains: level - a string, any case ('' and unknown names match
+nothing; aliases are separate names).  Invalid: undef, any reference.
+name - as for L</like>.
+
 =head4 Output
 
     { type => 'boolean' }
@@ -1797,6 +1871,8 @@ messages are printed under it.
         name => { type => 'string', optional => 1, position => 0 },
     }
 
+Domains: name - undef, or any string.  Invalid: a reference.
+
 =head4 Output
 
     { type => 'boolean' }
@@ -1816,6 +1892,7 @@ sub empty {
 	my ($self, $name) = @_;
 
 	my $messages = _object($self, 'empty')->{'messages'};
+	$self->_validate(\%NAME_SCHEMA, { name => $name }) if(defined($name));
 
 	return $self->_assert(!@{$messages}, $name, 'captured', $messages);
 }
@@ -1942,6 +2019,9 @@ Changes the setting, when you give an argument.
         value => { type => 'scalar', optional => 1, position => 0 },
     }
 
+Domains: absent - get only; otherwise Perl truth decides ('0', '' and
+undef are off; '0.0' is on).
+
 =head4 Output
 
     { type => 'integer', min => 0, max => 1 }
@@ -2012,6 +2092,10 @@ changes and a warning is printed.
     {
         name => { type => 'string', optional => 1, position => 0 },
     }
+
+Domains: absent or undef - get only; one of the 16 level names, any
+case - set (0 for emergency to 7 for trace).  Anything else - '', numbers
+such as '0' or '8', unknown names - warns and returns undef.
 
 =head4 Output
 
@@ -2322,6 +2406,11 @@ None.
         key => { type => 'string', position => 0 },
         args => { type => 'hashref', optional => 1, position => 1 },
     }
+
+Domains: key - any string; undef renders as '', a reference as its
+string form, and an unknown key is returned as it is.  args - a hash
+reference; anything else is ignored.  count - a number selects a plural
+form (0 uses 'zero' when present); anything else uses 'other'.
 
 =head4 Output
 

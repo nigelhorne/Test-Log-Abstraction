@@ -148,9 +148,37 @@ jobs:
           eval $(perl -I ~/perl5/lib/perl5 -Mlocal::lib)
           prove -lr t/
 
+      # DIAGNOSTIC (temporary): on Perl 5.42 for Windows every test file exits
+      # with status 5 (an access violation) since Sub::Private and
+      # Sub::Protected brought in compiled dependencies.  Load each suspect
+      # on its own, at load time and at exit, and report its exit code.
+      - name: Diagnose XS crash (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: cmd
+        run: |
+          @echo off
+          rem GitHub runs cmd with /V:OFF; !ERRORLEVEL! in the loop needs delayed expansion
+          setlocal EnableDelayedExpansion
+          set "PATH=%USERPROFILE%\perl5\bin;%PATH%"
+          set "PERL5LIB=%USERPROFILE%\perl5\lib\perl5"
+          for %%M in (Variable::Magic B::Hooks::EndOfScope Package::Stash::XS Sub::Identify namespace::clean Sub::Private Sub::Protected) do (
+            perl -M%%M -e "print qq{%%M loaded\n}"
+            echo %%M exit code: !ERRORLEVEL!
+          )
+          set "B_HOOKS_ENDOFSCOPE_IMPLEMENTATION=PP"
+          perl -Ilib -MTest::Log::Abstraction -e "print qq{Test::Log::Abstraction with EndOfScope PP loaded\n}"
+          echo Test::Log::Abstraction with EndOfScope PP exit code: !ERRORLEVEL!
+
       - name: Run tests (Windows)
         if: runner.os == 'Windows'
         shell: cmd
+        # DIAGNOSTIC (temporary): force B::Hooks::EndOfScope's pure-Perl
+        # implementation, so Variable::Magic is never loaded.  If the 5.42
+        # crash goes away, Variable::Magic is the cause; remove this once
+        # it is fixed or worked around properly.
+        env:
+          B_HOOKS_ENDOFSCOPE_IMPLEMENTATION: PP
         run: |
           @echo off
           set "PATH=%USERPROFILE%\perl5\bin;%PATH%"

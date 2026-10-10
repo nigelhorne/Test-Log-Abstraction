@@ -1,6 +1,11 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Fixed (found by t/domain.t): "invalid argument" explanations could
+		name a line inside this module; lang => 'AUTO' was rejected though
+		'auto' is case-insensitive; empty() did not validate its test name
+	POD: each method's API SPECIFICATION lists its valid and invalid input
+		domains and their boundaries
 	Fixed: a malformed UTF-8 message warned on Perl 5.36 and earlier
 	Tests: run child processes without a forking pipe open, use file names
 		Windows allows, and only test timeouts where they can fire, so the
