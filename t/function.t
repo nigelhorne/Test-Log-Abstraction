@@ -328,7 +328,11 @@ subtest '_reason: hostile errors' => sub {
 	is(Test::Log::Abstraction::_reason("line one\nline two at x line 1.\n"), 'line one\\x0Aline two', 'a newline is escaped, so the error stays on one line');
 	is(Test::Log::Abstraction::_reason(' at x line 1.'), '', 'nothing but a location');
 	is(Test::Log::Abstraction::_reason('at x line 1.'), 'at x line 1.', 'no space before at: not a location');
-	is(Test::Log::Abstraction::_reason(('x' x $HUGE) . ' at y line 2.'), ('x' x $MAX_REASON) . '...', 'huge message is cut short');
+	# ok() rather than is(): if the cap breaks, is() would print the whole
+	# million-character result, which looks like a hung test
+	my $cut = Test::Log::Abstraction::_reason(('x' x $HUGE) . ' at y line 2.');
+	ok($cut eq ('x' x $MAX_REASON) . '...', 'huge message is cut short')
+		or diag('got ', length($cut), ' characters');
 };
 
 subtest '_reason: removes only a trailing location' => sub {

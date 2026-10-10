@@ -352,9 +352,15 @@ subtest 'errors do not echo hostile values unbounded' => sub {
 	# A rejected option value appears in the error; it must not be able to
 	# add lines to the output or make the error enormous
 	my $value = "en\nok 1 - forged\r" . ('x' x $HUGE);
-	throws_ok { $CLASS->new(lang => $value) } qr/\A\Q$CLASS: invalid argument: \E[^\n]*\.\.\. at \Q$FILE\E line \d+\.?\n?\z/, 'one line, cut short';
+	ok(!eval { $CLASS->new(lang => $value); 1 }, 'refused');
 	my $error = $@;
+	# Length first, and the shape with ok() rather than throws_ok: if the cap
+	# ever breaks, throws_ok's failure report would repeat the whole
+	# multi-megabyte error, which looks like a hung test (it did, under
+	# mutation testing)
 	ok(length($error) < $MAX_REASON * 2, 'bounded length (' . length($error) . ' characters)');
+	ok($error =~ /\A\Q$CLASS: invalid argument: \E[^\n]*\.\.\. at \Q$FILE\E line \d+\.?\n?\z/, 'one line, cut short')
+		or diag('starts: ', substr($error, 0, $MAX_REASON * 2));
 	unlike($error, qr/Params\/Validate\/Strict\.pm|Params::Validate::Strict line/, "no internal file names from the validator");
 };
 

@@ -1,6 +1,8 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Tests: a broken error-length cap no longer prints megabytes of failure
+		output (it looked like a hang under mutation testing)
 	Regex audit: the placeholder pattern no longer backtracks over leading
 		zeros (about 240 times faster on hostile templates); the location
 		patterns in error text are linear by construction rather than by
