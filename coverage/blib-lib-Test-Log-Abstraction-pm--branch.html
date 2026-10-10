@@ -20,41 +20,43 @@ https://pjcj.net
 <h1>Branch Coverage</h1>
 <table>
 <tr><td class="h" align="right">File:</td><td align="left">blib/lib/Test/Log/Abstraction.pm</td></tr>
-<tr><td class="h" align="right">Coverage:</td><td align="left" class="c3">100.0%</td></tr>
+<tr><td class="h" align="right">Coverage:</td><td align="left" class="c2">98.1%</td></tr>
 </table>
 <div><br/></div>
 <table>
 <tr><th>line</th><th>%</th><th colspan="2">coverage</th><th>branch</th></tr>
-<tr><td class="h"><a id="L804">804</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if &amp;Scalar::Util::blessed($class)</td></tr>
-<tr><td class="h"><a id="L812">812</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless (UNIVERSAL::isa($class, __PACKAGE__))</td></tr>
-<tr><td class="h"><a id="L813">813</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $class</td></tr>
-<tr><td class="h"><a id="L1251">1251</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">_object($self, $method)-&gt;{&#39;level&#39;} &gt;= $SEVERITY{$level} ? :</td></tr>
-<tr><td class="h"><a id="L1367">1367</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $value</td></tr>
-<tr><td class="h"><a id="L1374">1374</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $type</td></tr>
-<tr><td class="h"><a id="L1376">1376</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($type ne &quot;HASH&quot; and $type ne &quot;ARRAY&quot;)</td></tr>
-<tr><td class="h"><a id="L1379">1379</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">defined $text ? :</td></tr>
-<tr><td class="h"><a id="L1384">1384</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $seen-&gt;{$address}</td></tr>
-<tr><td class="h"><a id="L1387">1387</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $type eq &quot;HASH&quot;</td></tr>
-<tr><td class="h"><a id="L1675">1675</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">defined $level ? :</td></tr>
-<tr><td class="h"><a id="L1751">1751</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $pattern</td></tr>
-<tr><td class="h"><a id="L1752">1752</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">defined $name ? :</td></tr>
-<tr><td class="h"><a id="L1756">1756</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">&amp;List::Util::any(sub {
+<tr><td class="h"><a id="L805">805</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if &amp;Scalar::Util::blessed($class)</td></tr>
+<tr><td class="h"><a id="L813">813</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless (UNIVERSAL::isa($class, __PACKAGE__))</td></tr>
+<tr><td class="h"><a id="L814">814</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $class</td></tr>
+<tr><td class="h"><a id="L1012">1012</a></td><td class="c0">50</td><td class="c3">T</td><td class="c0">F</td><td class="s">defined $value ? :</td></tr>
+<tr><td class="h"><a id="L1015">1015</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">length $text &gt; $MAX_REASON ? :</td></tr>
+<tr><td class="h"><a id="L1266">1266</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">_object($self, $method)-&gt;{&#39;level&#39;} &gt;= $SEVERITY{$level} ? :</td></tr>
+<tr><td class="h"><a id="L1382">1382</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $value</td></tr>
+<tr><td class="h"><a id="L1389">1389</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless $type</td></tr>
+<tr><td class="h"><a id="L1391">1391</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if ($type ne &quot;HASH&quot; and $type ne &quot;ARRAY&quot;)</td></tr>
+<tr><td class="h"><a id="L1394">1394</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">defined $text ? :</td></tr>
+<tr><td class="h"><a id="L1399">1399</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $seen-&gt;{$address}</td></tr>
+<tr><td class="h"><a id="L1402">1402</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if $type eq &quot;HASH&quot;</td></tr>
+<tr><td class="h"><a id="L1690">1690</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">defined $level ? :</td></tr>
+<tr><td class="h"><a id="L1766">1766</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $pattern</td></tr>
+<tr><td class="h"><a id="L1767">1767</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">defined $name ? :</td></tr>
+<tr><td class="h"><a id="L1771">1771</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">&amp;List::Util::any(sub {
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$_-&gt;{&#39;message&#39;} =~ /$regex/u;
 }
 , @{$$self{&#39;messages&#39;};}) ? :</td></tr>
-<tr><td class="h"><a id="L1827">1827</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $pattern</td></tr>
-<tr><td class="h"><a id="L1828">1828</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">defined $name ? :</td></tr>
-<tr><td class="h"><a id="L1835">1835</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$matched ? :</td></tr>
-<tr><td class="h"><a id="L1906">1906</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $level</td></tr>
-<tr><td class="h"><a id="L1907">1907</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">defined $name ? :</td></tr>
-<tr><td class="h"><a id="L1911">1911</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">&amp;List::Util::any(sub {
+<tr><td class="h"><a id="L1842">1842</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $pattern</td></tr>
+<tr><td class="h"><a id="L1843">1843</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">defined $name ? :</td></tr>
+<tr><td class="h"><a id="L1850">1850</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$matched ? :</td></tr>
+<tr><td class="h"><a id="L1921">1921</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">unless defined $level</td></tr>
+<tr><td class="h"><a id="L1922">1922</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">defined $name ? :</td></tr>
+<tr><td class="h"><a id="L1926">1926</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">&amp;List::Util::any(sub {
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$_-&gt;{&#39;level&#39;} eq $wanted;
 }
 , @{$$self{&#39;messages&#39;};}) ? :</td></tr>
-<tr><td class="h"><a id="L1973">1973</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $name</td></tr>
-<tr><td class="h"><a id="L2138">2138</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$value[0] ? :</td></tr>
+<tr><td class="h"><a id="L1988">1988</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if defined $name</td></tr>
+<tr><td class="h"><a id="L2153">2153</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">$value[0] ? :</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if @value</td></tr>
-<tr><td class="h"><a id="L2220">2220</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (not defined $name) { }</td></tr>
+<tr><td class="h"><a id="L2235">2235</a></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">if (not defined $name) { }</td></tr>
 <tr><td class="h"></td><td class="c3">100</td><td class="c3">T</td><td class="c3">F</td><td class="s">elsif (exists $SEVERITY{lc $name}) { }</td></tr>
 </table>
 </body>
