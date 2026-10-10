@@ -17,3 +17,4 @@ t/i18n.t
 t/lib/Capture.pm
 t/locales.t
 t/render.t
+t/unit.t

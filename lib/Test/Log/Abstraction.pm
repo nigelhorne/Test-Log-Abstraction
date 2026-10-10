@@ -146,6 +146,13 @@ serious level.
 When a test method fails, the messages that explain the failure are printed
 under it.  So you can see why it failed without running the test again.
 
+=head2 Global variables are left alone
+
+No method changes C<$@>, C<$!> or C<$_>, and none of them touches an
+C<alarm()> timer.  So you can log, or test the log, inside an error
+handler, and C<$@> still holds the error afterwards.  (A method that stops
+with an error does set C<$@>, as every Perl error does.)
+
 =head2 Levels and how serious they are
 
 Each level has a number.  A lower number means a more serious message.
@@ -826,10 +833,13 @@ sub _clone {
 #               $schema - schema hash reference.
 #               $input  - hash reference of arguments.
 # Exit:         Returns the validated hash reference; unknown keys dropped.
-# Side effects: Croaks with 'invalid_argument' on failure.
+# Side effects: Croaks with 'invalid_argument' on failure.  Leaves $@ alone
+#               on success.
 sub _validate {
 	my ($self, $schema, $input) = @_;
 
+	# The caller's $@ must survive a successful check
+	local $@;
 	my $valid;
 	if(!eval { $valid = validate_strict(schema => $schema, input => $input, unknown_parameter_handler => 'ignore'); 1 }) {
 		# Keep the validator's explanation, but not its file and line,
@@ -1016,8 +1026,8 @@ handler without losing the error.
 
     Message                         Meaning                       What to do
     ------------------------------  ----------------------------  ------------------------------
-    X() must be called on an        not called on a logger,       Call it on a logger object
-    object, not on the class        not on a logger (croak)
+    X() must be called on an        not called on a logger        Call it on a logger object
+    object, not on the class        (croak)
 
 =cut
 
@@ -1539,6 +1549,8 @@ messages are printed under it (at most 20, then a count of the others).
                                     or can never match (croak)
     N messages were captured:       the test failed; the stored   Compare them with the pattern
                                     messages follow (output)
+    like() must be called on        not called on a logger        Call it on a logger object
+    an object, not on the class     (croak)
 
 =cut
 
@@ -1608,6 +1620,8 @@ that matched are printed under it.
                                     or can never match (croak)
     N messages matched:             the test failed; the          Look at the listed messages
                                     matching messages follow
+    unlike() must be called on      not called on a logger        Call it on a logger object
+    an object, not on the class     (croak)
 
 =cut
 
@@ -1677,6 +1691,8 @@ messages are printed under it, so you can see which levels were used.
                                     (croak)
     N messages were captured:       the test failed; the stored   Look at the listed levels
                                     messages follow (output)
+    has_level() must be called on   not called on a logger        Call it on a logger object
+    an object, not on the class     (croak)
 
 =cut
 
@@ -1738,6 +1754,8 @@ messages are printed under it.
     ------------------------------  ----------------------------  ------------------------------
     N messages were captured:       the test failed; the stored   Look at the listed messages
                                     messages follow (output)
+    empty() must be called on       not called on a logger        Call it on a logger object
+    an object, not on the class     (croak)
 
 =cut
 
@@ -1763,6 +1781,7 @@ sub _matching {
 	# A string is compiled here, so that a malformed one, one with code in
 	# it (not allowed at run time), or one Perl warns can never match, is
 	# the caller's error and not a crash or a stray warning
+	local $@;	# the caller's $@ must survive a good pattern
 	my $regex = eval { use warnings FATAL => 'regexp'; qr/$pattern/ };
 	$self->_croak('invalid_argument', { reason => _reason($@) }) if(!defined($regex));
 
@@ -1949,6 +1968,8 @@ changes and a warning is printed.
     ------------------------------  ----------------------------  ------------------------------
     invalid syslog level 'X'        X is not a level name         Use a name from the level table
                                     (warning; returns undef)
+    level() must be called on       not called on a logger        Call it on a logger object
+    an object, not on the class     (croak)
 
 =cut
 
@@ -2004,14 +2025,17 @@ None.
 
 =head3 MESSAGES
 
-None.
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    flush() must be called on an    not called on a logger        Call it on a logger object
+    object, not on the class        (croak)
 
 =cut
 
 sub flush {
 	my $self = shift;
 
-	return $self;
+	return _object($self, 'flush');
 }
 
 =head2 lang
@@ -2245,7 +2269,13 @@ None.
 
 =head3 MESSAGES
 
-None.  It always returns a string.
+It never fails for any key or arguments.  The only error is about who may
+call it:
+
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    i18n() is a protected method    called from outside the class Call it from a subclass only
+    ... (croak)                     and its subclasses
 
 =head3 PSEUDOCODE
 

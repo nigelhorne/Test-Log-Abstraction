@@ -58,7 +58,6 @@ subtest 'flush() is a no-op that chains' => sub {
 subtest 'class-method calls croak clearly' => sub {
 	my $class = 'Test::Log::Abstraction';
 	foreach my $method (qw(warn trace is_debug messages clear count empty verbose level lang flush)) {
-		next if($method eq 'flush');	# flush has no state to touch
 		throws_ok { $class->$method() } qr/\Q$method\E\(\) must be called on an object/, "$method on the class croaks";
 	}
 	throws_ok { $class->like(qr/x/) } qr/like\(\) must be called on an object/, 'like on the class croaks';

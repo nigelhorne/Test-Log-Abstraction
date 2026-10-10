@@ -1,6 +1,10 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Fixed (found by t/unit.t): like(), unlike(), has_level(), count() and
+		new() cleared the caller's $@; flush() did not check its invocant
+	POD: documents that $@, $!, $_ and alarm() are left alone, and lists
+		every "must be called on an object" error
 	Fixed (found by t/function.t): a self-referential i18n template looped
 		forever; an object whose "" dies, or a tied hash that dies, made a
 		log call die; logging data nested over 100 deep warned; methods

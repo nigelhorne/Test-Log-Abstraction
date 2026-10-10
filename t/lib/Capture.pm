@@ -33,8 +33,14 @@ sub capture_diag(&) {
 	$tb->failure_output($sink);
 	$tb->todo_output($sink);
 
-	my $ok = eval { $code->(); 1 };
-	my $error = $@;
+	# The caller's $@ is restored, so tests can check that code under test
+	# leaves $@ alone even when it runs inside capture_diag
+	my ($ok, $error);
+	{
+		local $@;
+		$ok = eval { $code->(); 1 };
+		$error = $@;
+	}
 
 	$tb->failure_output($original[0]);
 	$tb->todo_output($original[1]);
