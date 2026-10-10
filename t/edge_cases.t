@@ -364,6 +364,30 @@ subtest 'errors do not echo hostile values unbounded' => sub {
 	unlike($error, qr/Params\/Validate\/Strict\.pm|Params::Validate::Strict line/, "no internal file names from the validator");
 };
 
+subtest 'errors that repeat a name escape it and cut it short' => sub {
+	# Level names, diag names and method names are repeated in errors and
+	# warnings too.  Each is a separate path to the output, so each is tried
+	# with a forged TAP line, a terminal escape sequence, and a huge name.
+	my %repeats = (
+		'new(level)' => sub { $CLASS->new(level => $_[0]) },
+		'new(diag)' => sub { $CLASS->new(diag => $_[0]) },
+		'new(diag list)' => sub { $CLASS->new(diag => [$_[0]]) },
+		'level()' => sub { my $logger = quiet(); local $SIG{__WARN__} = sub { die @_ }; $logger->level($_[0]) },
+		'class method' => sub { my $method = $_[0]; $CLASS->$method() },
+	);
+	foreach my $how (sort keys %repeats) {
+		foreach my $hostile ("x\nok 1 - forged", "x\e[2Jcleared", 'x' x $HUGE) {
+			ok(!eval { $repeats{$how}->($hostile); 1 }, "$how: refused");
+			my $error = $@;
+			# ok() rather than like(): a failure must not print the huge name
+			ok(length($error) < $MAX_REASON * 2, "$how: bounded (" . length($error) . ' characters)');
+			ok($error !~ /[\x00-\x09\x0B-\x1F\x7F]/ && $error =~ /\A[^\n]*\n?\z/, "$how: one line, no control characters")
+				or diag('starts: ', substr($error, 0, $MAX_REASON * 2));
+		}
+	}
+	throws_ok { $CLASS->new(level => "x\ny") } qr/\Q'x\x0Ay'\E/, 'the escape shows what the character was';
+};
+
 subtest 'patterns cannot run code' => sub {
 	my $logger = quiet();
 	$logger->info('x');

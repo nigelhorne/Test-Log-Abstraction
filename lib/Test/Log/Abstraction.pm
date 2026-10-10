@@ -763,8 +763,9 @@ Domains (valid / invalid / boundaries):
     i18n      valid: a hash reference (even empty).  Invalid: any other
               type.
 
-An "invalid argument" explanation is at most 200 characters; one longer is
-cut to 200 and ends with "...".
+An "invalid argument" explanation, and a level or diag name repeated in an
+error, is at most 200 characters; one longer is cut to 200 and ends with
+"...".  Control characters in it are shown as C<\xNN>.
 
 =head4 Output
 
@@ -883,7 +884,7 @@ sub _build {
 	# level() only carps, as Log::Abstraction's does
 	my $level = defined($valid->{'level'}) ? $valid->{'level'} : $config{'level'};
 	$level = defined($level) ? lc($level) : 'undef';
-	$self->_croak('invalid_level', { level => $level }) if(!exists($SEVERITY{$level}));
+	$self->_croak('invalid_level', { level => _shown($level) }) if(!exists($SEVERITY{$level}));
 	$self->{'level'} = $SEVERITY{$level};
 
 	return $self;
@@ -975,9 +976,8 @@ sub _validate {
 #               file and line; the caller only needs the explanation.
 # Entry:        $error - error text, such as $@.
 # Exit:         Returns the text without a trailing ' at FILE line N.', or
-#               any ' at THIS-FILE line N.' anywhere in it,
-#               with control characters escaped, at most $MAX_REASON
-#               characters followed by '...'.
+#               any ' at THIS-FILE line N.' anywhere in it, made safe to
+#               show by _shown().
 # Side effects: None.
 sub _reason {
 	my $error = shift;
@@ -991,13 +991,28 @@ sub _reason {
 	# to our caller, and may do so in the middle of its text
 	$reason =~ s/(?<!\s)\s++at\ \Q${\ __FILE__}\E\ line\ \d++\.?//gx;
 
-	# The text may repeat a hostile value: show control characters (such
-	# as a newline that would start a fake line of output) as escapes, and
-	# keep it short
-	$reason =~ s/([\x00-\x1F\x7F])/sprintf('\\x%02X', ord($1))/ge;
-	$reason = substr($reason, 0, $MAX_REASON) . '...' if(length($reason) > $MAX_REASON);
+	return _shown($reason);
+}
 
-	return $reason;
+# _shown - make a caller's value safe to repeat in an error message
+#
+# Purpose:      An error that repeats what the caller passed must not let
+#               that value add lines to the output (a newline followed by
+#               'ok 5' is a forged TAP result when STDERR is merged into the
+#               TAP stream), send terminal escape sequences, or make the
+#               error enormous.
+# Entry:        $value - the value to show; a string, or undef.
+# Exit:         Returns the value with control characters written as \xHH,
+#               cut to $MAX_REASON characters followed by '...' if longer;
+#               undef is shown as 'undef'.
+# Side effects: None.
+sub _shown {
+	my $value = shift;
+
+	my $text = defined($value) ? "$value" : 'undef';
+	$text =~ s/([\x00-\x1F\x7F])/sprintf('\\x%02X', ord($1))/ge;
+
+	return (length($text) > $MAX_REASON) ? substr($text, 0, $MAX_REASON) . '...' : $text;
 }
 
 # _resolve_lang - choose the catalogue for a logger's own messages
@@ -1055,7 +1070,7 @@ sub _diag_rule {
 			# 'undef' is not a level name, so an undefined element fails the
 			# same test as any other bad name, and is reported as 'undef'
 			my $shown = defined($level) ? $level : 'undef';
-			$self->_croak('invalid_diag_level', { level => $shown }) if(!exists($SEVERITY{lc($shown)}));
+			$self->_croak('invalid_diag_level', { level => _shown($shown) }) if(!exists($SEVERITY{lc($shown)}));
 			$levels{lc($shown)} = 1;
 		}
 		return { levels => \%levels };
@@ -1070,7 +1085,7 @@ sub _diag_rule {
 	my $name = lc($shown);
 	return {} if($name eq $DIAG_NONE);
 	return { all => 1 } if($name eq $DIAG_ALL);
-	$self->_croak('invalid_diag_level', { level => $shown }) if(!exists($SEVERITY{$name}));
+	$self->_croak('invalid_diag_level', { level => _shown($shown) }) if(!exists($SEVERITY{$name}));
 
 	return { threshold => $SEVERITY{$name} };
 }
@@ -1271,7 +1286,7 @@ sub _object {	## no critic (RequireFinalReturn): ends in _croak(), which never r
 
 	# Only on failure: which class to name in the message
 	my $class = (defined($self) && !ref($self) && UNIVERSAL::isa($self, __PACKAGE__)) ? $self : __PACKAGE__;
-	_croak($class, 'class_invocant', { method => $method });
+	_croak($class, 'class_invocant', { method => _shown($method) });
 }
 
 # _record - capture one logged message
@@ -2223,7 +2238,7 @@ sub level {
 		$self->{'level'} = $SEVERITY{lc($name)};
 		$result = $self;
 	} else {
-		carp($self->i18n('invalid_level', { level => $name }));
+		carp($self->i18n('invalid_level', { level => _shown($name) }));
 	}
 
 	return $result;
@@ -2785,9 +2800,12 @@ Each method lists its messages under C<MESSAGES>.  All messages can be
 translated or changed; see L</i18n>.
 
 The text after C<invalid argument:> explains what was wrong, and may show
-the value that was given.  It is cut to 200 characters, and control
-characters in it (such as a newline) are shown as C<\xNN>.  So a hostile
-value cannot make an error message enormous, or add lines to the output.
+the value that was given.  Other errors and warnings repeat a name you gave:
+a level name, a diag name, or a method name.  Every value repeated like this
+is cut to 200 characters, and control characters in it (such as a newline,
+or the escape character that starts a terminal control sequence) are shown
+as C<\xNN>.  So a hostile value cannot make an error message enormous, add
+a forged C<ok> line to the output, or control your terminal.
 
 =head1 SEE ALSO
 

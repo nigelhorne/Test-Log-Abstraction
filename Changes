@@ -1,6 +1,10 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Security: invalid level, diag and method names repeated in errors and
+		warnings are now escaped and cut to 200 characters, as validator
+		errors already were; a newline in one could forge a TAP line when
+		STDERR is merged into the TAP stream
 	Tests: a broken error-length cap no longer prints megabytes of failure
 		output (it looked like a hang under mutation testing)
 	Regex audit: the placeholder pattern no longer backtracks over leading

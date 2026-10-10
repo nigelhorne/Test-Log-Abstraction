@@ -1,85 +1,99 @@
-# NAME
+## Name
 
 Test::Log::Abstraction - Capture log output in tests and assert on it
 
-# VERSION
+## Version
 
 0.002.0
 
-# SYNOPSIS
+## Synopsis
 
-## Check what your code logged
+### Check What Your Code Logged
 
-    use Test::Most;
-    use Test::Log::Abstraction;
+```perl
+use Test::Most;
+use Test::Log::Abstraction;
 
-    # Give the test logger to the code that you are testing
-    my $logger = Test::Log::Abstraction->new();
-    my $obj = Some::Class->new(logger => $logger);
+# Give the test logger to the code that you are testing
+my $logger = Test::Log::Abstraction->new();
+my $obj = Some::Class->new(logger => $logger);
 
-    $obj->do_something();
+$obj->do_something();
 
-    # Each of these is one TAP test
-    $logger->like(qr/updated/, 'do_something() logs that it updated');
-    $logger->has_level('error', 'an error was logged');
-    $logger->unlike(qr/fatal/, 'nothing fatal was logged');
-    is($logger->count(), 3, 'three messages were logged');
+# Each of these is one TAP test
+$logger->like(qr/updated/, 'do_something() logs that it updated');
+$logger->has_level('error', 'an error was logged');
+$logger->unlike(qr/fatal/, 'nothing fatal was logged');
+is($logger->count(), 3, 'three messages were logged');
 
-    done_testing();
+done_testing();
+```
 
-## Check that nothing was logged
+### Check That Nothing Was Logged
 
-    my $logger = Test::Log::Abstraction->new();
-    Some::Class->new(logger => $logger)->run();
-    $logger->empty('a normal run logs nothing');
+```perl
+my $logger = Test::Log::Abstraction->new();
+Some::Class->new(logger => $logger)->run();
+$logger->empty('a normal run logs nothing');
+```
 
-## Test several steps with one logger
+### Test Several Steps With One Logger
 
-    my $logger = Test::Log::Abstraction->new();
-    my $obj = Some::Class->new(logger => $logger);
+```perl
+my $logger = Test::Log::Abstraction->new();
+my $obj = Some::Class->new(logger => $logger);
 
-    $obj->load('good.csv');
-    $logger->empty('good file: no messages');
+$obj->load('good.csv');
+$logger->empty('good file: no messages');
 
-    $logger->clear();    # forget the messages from the first step
-    $obj->load('bad.csv');
-    $logger->has_level('warn', 'bad file: a warning');
+$logger->clear();    # forget the messages from the first step
+$obj->load('bad.csv');
+$logger->has_level('warn', 'bad file: a warning');
+```
 
-## Look at the messages yourself
+### Look at the Messages Yourself
 
-    foreach my $entry (@{ $logger->messages() }) {
-        print "$entry->{level}: $entry->{message}\n";
-    }
+```perl
+foreach my $entry (@{ $logger->messages() }) {
+    print "$entry->{level}: $entry->{message}\n";
+}
 
-    # Structured fields, from a call such as
-    # $logger->info('user logged in', { user => 'alice' })
-    is($logger->messages()->[0]->{fields}->{user}, 'alice', 'user field');
+# Structured fields, from a call such as
+# $logger->info('user logged in', { user => 'alice' })
+is($logger->messages()->[0]->{fields}->{user}, 'alice', 'user field');
+```
 
-## Control what is printed while the test runs
+### Control What Is Printed While the Test Runs
 
-    # Print nothing (the messages are still captured)
-    my $quiet = Test::Log::Abstraction->new(diag => 'none');
+```perl
+# Print nothing (the messages are still captured)
+my $quiet = Test::Log::Abstraction->new(diag => 'none');
 
-    # Print everything
-    my $loud = Test::Log::Abstraction->new(verbose => 1);
+# Print everything
+my $loud = Test::Log::Abstraction->new(verbose => 1);
 
-    # Print only errors and more serious messages
-    my $errors = Test::Log::Abstraction->new(diag => 'error');
+# Print only errors and more serious messages
+my $errors = Test::Log::Abstraction->new(diag => 'error');
+```
 
-## Test code that checks the log level
+### Test Code That Checks the Log Level
 
-    # The code under test does: if($logger->is_debug()) { ... }
-    my $logger = Test::Log::Abstraction->new(level => 'warning');
-    ok(!$logger->is_debug(), 'debug output is turned off');
+```perl
+# The code under test does: if($logger->is_debug()) { ... }
+my $logger = Test::Log::Abstraction->new(level => 'warning');
+ok(!$logger->is_debug(), 'debug output is turned off');
+```
 
-## Get this module's own messages in another language
+### Get This Module's Own Messages in Another Language
 
-    my $logger = Test::Log::Abstraction->new(lang => 'de');    # German
-    my $french = Test::Log::Abstraction->new(country => 'FR');    # French
+```perl
+my $logger = Test::Log::Abstraction->new(lang => 'de');    # German
+my $french = Test::Log::Abstraction->new(country => 'FR');    # French
+```
 
-# DESCRIPTION
+## Description
 
-## What this module is
+### What This Module Is
 
 Some code writes log messages through a logger object.  In production that
 object is usually a [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction) logger.  In a test, you give the code
@@ -91,7 +105,7 @@ message logged, at which level, and what did it say?
 
 It never writes to disk, and it does not load any logging backend.
 
-## Which methods it has
+### Which Methods It Has
 
 - **Log levels.**  The level methods of [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction):
 `trace`, `debug`, `info`, `notice`, `warn`, `error`, `fatal`,
@@ -104,7 +118,7 @@ test may call these, so they work as they do in [Log::Abstraction](https://metac
 Each one reports one test result, like `ok()` in [Test::More](https://metacpan.org/pod/Test%3A%3AMore).
 - **Helper methods.**  `count`, `clear`, `verbose` and `lang`.
 
-## Which messages are printed
+### Which Messages Are Printed
 
 Every message is always stored.  This section is only about which messages
 are also printed in the test output, as TAP comments (lines that start with
@@ -142,28 +156,30 @@ So a misspelt level (caught by ["AUTOLOAD"](#autoload)) is printed only by rules
 When a test method fails, the messages that explain the failure are printed
 under it.  So you can see why it failed without running the test again.
 
-## Global variables are left alone
+### Global Variables Are Left Alone
 
 No method changes `$@`, `$!` or `$_`, and none of them touches an
 `alarm()` timer.  So you can log, or test the log, inside an error
 handler, and `$@` still holds the error afterwards.  (A method that stops
 with an error does set `$@`, as every Perl error does.)
 
-## Levels and how serious they are
+### Levels and How Serious They Are
 
 Each level has a number.  A lower number means a more serious message.
 These are the syslog numbers.
 
-    0  emergency, emerg, panic
-    1  alert
-    2  critical, crit, fatal
-    3  error, err
-    4  warning, warn
-    5  notice
-    6  info, informational
-    7  debug, trace
+```
+0  emergency, emerg, panic
+1  alert
+2  critical, crit, fatal
+3  error, err
+4  warning, warn
+5  notice
+6  info, informational
+7  debug, trace
+```
 
-## Language of this module's messages
+### Language of This Module's Messages
 
 This module has its own messages: error messages, warnings, and the text
 that explains a failed test.  They can be in English (`en`), German
@@ -187,14 +203,16 @@ or change messages with the `i18n` option of `new()`.
 This only changes this module's own messages.  The messages that your code
 logs are never changed.
 
-## Default settings
+### Default Settings
 
 The defaults for `new()` are in the hash
 `%Test::Log::Abstraction::config`.  It has the same keys as the options of
 `new()`.  You can change it in a test, or fill it with
 [Object::Configure](https://metacpan.org/pod/Object%3A%3AConfigure):
 
-    $Test::Log::Abstraction::config{'diag'} = 'none';
+```
+$Test::Log::Abstraction::config{'diag'} = 'none';
+```
 
 A change only affects loggers that are created after it.
 
@@ -203,11 +221,13 @@ Settings in environment variables named `Test__Log__Abstraction__KEY`
 then override the arguments; the extra keys that [Object::Configure](https://metacpan.org/pod/Object%3A%3AConfigure)
 adds (such as its own `logger`) are ignored:
 
-    # In the shell: export Test__Log__Abstraction__diag=none
-    my $params = Object::Configure::configure('Test::Log::Abstraction', { level => 'error' });
-    my $logger = Test::Log::Abstraction->new($params);
+```perl
+# In the shell: export Test__Log__Abstraction__diag=none
+my $params = Object::Configure::configure('Test::Log::Abstraction', { level => 'error' });
+my $logger = Test::Log::Abstraction->new($params);
+```
 
-# COMMON PITFALLS
+## Common Pitfalls
 
 - **The test methods are tests.**  `like`, `unlike`, `has_level`
 and `empty` each add one test to the TAP output.  If you give a test
@@ -268,7 +288,7 @@ printed, set `verbose => 0` or `$ENV{TEST_VERBOSE} = 0`.
 - **`level()` does not hide messages.**  It only changes the answers
 of the `is_*` methods.  Every message is still stored.
 
-# ENCODING
+## Encoding
 
 This module never changes the text that your code logs.  It stores each
 message exactly as it was given.
@@ -300,18 +320,18 @@ letters, digits or `_`.
 - **Test names.**  Test names are passed to [Test::Builder](https://metacpan.org/pod/Test%3A%3ABuilder)
 unchanged.
 
-# METHODS
+## Methods
 
-## new
+### New
 
 Create a new test logger.
 
-### Purpose
+#### Purpose
 
 Make a logger that stores every message it is given, so that your test can
 check the messages later.
 
-### Args
+#### Args
 
 All options are optional.  Give them as a list (`key => value`) or as
 one hash reference.
@@ -341,7 +361,7 @@ Other options are allowed and ignored.  (A [Log::Abstraction](https://metacpan.o
 configuration hash can be passed unchanged.)  If you pass an odd number of
 arguments, they are all ignored.
 
-### Three ways to call it
+#### Three Ways to Call It
 
 - `Test::Log::Abstraction->new(%options)` - the usual way.
 - `$logger->new(%options)` - make a **clone**: a new logger with
@@ -350,108 +370,121 @@ the stored messages.  The options that you pass replace the old ones.
 - `Test::Log::Abstraction::new(%options)` - called as a function.
 This works too.
 
-### Returns
+#### Returns
 
 The new logger object.
 
-### Side Effects
+#### Side Effects
 
 Reads `%ENV` to decide on verbose mode, and, with `lang => 'auto'`,
 to choose the language.  Nothing else changes.  A clone does not change the
 original logger.
 
-### EXAMPLE
+#### Example
 
-    # The usual way
-    my $logger = Test::Log::Abstraction->new();
+```perl
+# The usual way
+my $logger = Test::Log::Abstraction->new();
 
-    # Store everything, print nothing
-    my $quiet = Test::Log::Abstraction->new(diag => 'none');
+# Store everything, print nothing
+my $quiet = Test::Log::Abstraction->new(diag => 'none');
 
-    # A hash reference works too; messages in German
-    my $german = Test::Log::Abstraction->new({ country => 'DE' });
+# A hash reference works too; messages in German
+my $german = Test::Log::Abstraction->new({ country => 'DE' });
 
-    # A clone that prints everything; $logger is not changed
-    my $loud = $logger->new(diag => 'all');
+# A clone that prints everything; $logger is not changed
+my $loud = $logger->new(diag => 'all');
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        verbose => { type => 'scalar', optional => 1 },
-        diag => { type => ['string', 'arrayref'], optional => 1 },
-        level => { type => 'string', optional => 1 },
-        lang => { type => 'string', optional => 1, matches => qr/\A(?:(?i:auto)|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*+)?)\z/ },
-        country => { type => 'string', optional => 1, matches => qr/\A[A-Za-z]{2}\z/ },
-        i18n => { type => 'hashref', optional => 1 },
-    }
+```perl
+{
+    verbose => { type => 'scalar', optional => 1 },
+    diag => { type => ['string', 'arrayref'], optional => 1 },
+    level => { type => 'string', optional => 1 },
+    lang => { type => 'string', optional => 1, matches => qr/\A(?:(?i:auto)|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*+)?)\z/ },
+    country => { type => 'string', optional => 1, matches => qr/\A[A-Za-z]{2}\z/ },
+    i18n => { type => 'hashref', optional => 1 },
+}
+```
 
 Domains (valid / invalid / boundaries):
 
-    verbose   valid: any plain value, Perl truth decides ('0', '' and undef
-              are off; '00', '0.0' and ' ' are on); absent: from
-              TEST_VERBOSE or VERBOSE.  Invalid: any reference.
-    diag      valid: 'all' or 'none' (any case); a level name (any case),
-              which prints severity 0 (emergency) up to that level's
-              number, 7 (trace) being every level; an array reference of
-              level names, [] printing nothing and duplicates counting
-              once; absent or undef: $config{diag}.  Invalid: any other
-              string, including '' and numbers such as '4'; a list
-              element that is not a level name (or is 'all'); a hash,
-              code or scalar reference.
-    level     valid: the 16 level names, any case, setting 0 (emergency)
-              to 7 (trace); absent or undef: $config{level}.  Invalid:
-              '', numbers (even 0 to 7), any other name.
-    lang      valid: 'auto' (any case); 2 or 3 ASCII letters, then
-              optionally one of _ . @ - and anything else ('de',
-              'eng', 'de_DE.UTF-8', 'zh-Hant').  A code with no catalogue
-              ('ja', 'eng') gives 'en'.  Invalid: 1 letter, 4 or more
-              letters, '', digits, a non-ASCII letter in the code, any
-              whitespace or newline.
-    country   valid: exactly 2 ASCII letters, any case; one with no
-              mapping ('JP') gives 'en'.  Invalid: 1 or 3 letters, '',
-              digits, non-ASCII letters.
-    i18n      valid: a hash reference (even empty).  Invalid: any other
-              type.
+```
+verbose   valid: any plain value, Perl truth decides ('0', '' and undef
+          are off; '00', '0.0' and ' ' are on); absent: from
+          TEST_VERBOSE or VERBOSE.  Invalid: any reference.
+diag      valid: 'all' or 'none' (any case); a level name (any case),
+          which prints severity 0 (emergency) up to that level's
+          number, 7 (trace) being every level; an array reference of
+          level names, [] printing nothing and duplicates counting
+          once; absent or undef: $config{diag}.  Invalid: any other
+          string, including '' and numbers such as '4'; a list
+          element that is not a level name (or is 'all'); a hash,
+          code or scalar reference.
+level     valid: the 16 level names, any case, setting 0 (emergency)
+          to 7 (trace); absent or undef: $config{level}.  Invalid:
+          '', numbers (even 0 to 7), any other name.
+lang      valid: 'auto' (any case); 2 or 3 ASCII letters, then
+          optionally one of _ . @ - and anything else ('de',
+          'eng', 'de_DE.UTF-8', 'zh-Hant').  A code with no catalogue
+          ('ja', 'eng') gives 'en'.  Invalid: 1 letter, 4 or more
+          letters, '', digits, a non-ASCII letter in the code, any
+          whitespace or newline.
+country   valid: exactly 2 ASCII letters, any case; one with no
+          mapping ('JP') gives 'en'.  Invalid: 1 or 3 letters, '',
+          digits, non-ASCII letters.
+i18n      valid: a hash reference (even empty).  Invalid: any other
+          type.
+```
 
-An "invalid argument" explanation is at most 200 characters; one longer is
-cut to 200 and ends with "...".
+An "invalid argument" explanation, and a level or diag name repeated in an
+error, is at most 200 characters; one longer is cut to 200 and ends with
+"...".  Control characters in it are shown as `\xNN`.
 
-#### Output
+##### Output
 
-    { type => 'object', isa => 'Test::Log::Abstraction' }
+```perl
+{ type => 'object', isa => 'Test::Log::Abstraction' }
+```
 
-### MESSAGES
+#### Messages
 
 All of these stop the program (`croak`).
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    invalid diag level 'X'          X is not a level name         Use a name from the level table
-    diag must be a level name ...   diag is a hash or code ref    Give a string or an array ref
-    invalid syslog level 'X'        the level option is unknown   Use a name from the level table
-    invalid argument: ...           an option has the wrong type  Fix the option that is named
-                                    or format
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+invalid diag level 'X'          X is not a level name         Use a name from the level table
+diag must be a level name ...   diag is a hash or code ref    Give a string or an array ref
+invalid syslog level 'X'        the level option is unknown   Use a name from the level table
+invalid argument: ...           an option has the wrong type  Fix the option that is named
+                                or format
+```
 
-### PSEUDOCODE
+#### Pseudocode
 
-    if new() was called on a logger object:
-        options = the object's options, replaced by the new options
-        build a logger from the options, with a copy of the messages
-        copy verbose and level from the object, unless new values were given
-    else:
-        if new() was called as a function, the first argument is an option
-        turn the arguments into a hash (ignore an odd-length list)
-        check the options
-        choose the language, then the diag rule, then the level
-    return the logger
+```
+if new() was called on a logger object:
+    options = the object's options, replaced by the new options
+    build a logger from the options, with a copy of the messages
+    copy verbose and level from the object, unless new values were given
+else:
+    if new() was called as a function, the first argument is an option
+    turn the arguments into a hash (ignore an odd-length list)
+    check the options
+    choose the language, then the diag rule, then the level
+return the logger
+```
 
-## trace, debug, info, notice, warn, error, fatal, critical, alert, emergency
+### Trace, Debug, Info, Notice, Warn, Error, Fatal, Critical, Alert, Emergency
 
 Store a message at this level.
 
-### Purpose
+#### Purpose
 
 These are the methods that the code under test calls to log something.
 There is one method for each [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction) level, and one for each
@@ -466,7 +499,7 @@ not printed.
 - `warn`, `warning`, `error`, `err`, `critical`, `crit`,
 `fatal`, `alert`, `emergency`, `emerg`, `panic` - stored and printed.
 
-### Args
+#### Args
 
 Any list of values.  They are turned into one message like this:
 
@@ -486,32 +519,36 @@ has its own text form (overloaded `""`), that form is used.
 - A structure that contains itself is written as `(cycle)` at the
 point where it repeats.
 
-### Returns
+#### Returns
 
 The logger, as in [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction).  So you can chain calls:
 `$logger->info('a')->info('b')`.
 
-### Side Effects
+#### Side Effects
 
 Adds one entry to the stored messages.  May print the message.  The
 variables `$@` and `$!` are not changed.  So you can log inside an error
 handler without losing the error.
 
-### EXAMPLE
+#### Example
 
-    $logger->warn('something looks wrong');
-    $logger->warn('file ', $name, ' is empty');          # joined: one message
-    $logger->info('started', { pid => $$ });             # message + fields
-    $logger->error({ error => 'cannot open file' });     # hash as the message
-    $logger->debug(['part 1, ', 'part 2']);              # array of parts
+```perl
+$logger->warn('something looks wrong');
+$logger->warn('file ', $name, ' is empty');          # joined: one message
+$logger->info('started', { pid => $$ });             # message + fields
+$logger->error({ error => 'cannot open file' });     # hash as the message
+$logger->debug(['part 1, ', 'part 2']);              # array of parts
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        messages => { type => 'arrayref', position => 0, slurp => 1 },
-    }
+```perl
+{
+    messages => { type => 'arrayref', position => 0, slurp => 1 },
+}
+```
 
 Domains: any number of arguments (0 gives an empty message) of any
 kind and length.  Exactly one trailing newline is removed (so "m\\n\\n"
@@ -522,74 +559,86 @@ combining marks, right-to-left text, zero-width characters) or bytes; it
 is stored with its length unchanged.  See ["ENCODING"](#encoding) for how it is
 printed.
 
-#### Output
+##### Output
 
-    { type => 'object', isa => 'Test::Log::Abstraction' }
+```perl
+{ type => 'object', isa => 'Test::Log::Abstraction' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    X() must be called on an        not called on a logger        Call it on a logger object
-    object, not on the class        (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+X() must be called on an        not called on a logger        Call it on a logger object
+object, not on the class        (croak)
+```
 
-## is\_trace, is\_debug, is\_info, is\_notice, is\_warn, is\_error, is\_critical, is\_alert, is\_emergency
+### Is\_Trace, Is\_Debug, Is\_Info, Is\_Notice, Is\_Warn, Is\_Error, Is\_Critical, Is\_Alert, Is\_Emergency
 
 Ask if a level is turned on.
 
-### Purpose
+#### Purpose
 
 Some code only builds a log message if the level is turned on, for
 example `if($logger->is_debug()) { ... }`.  These methods answer that
 question, as [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction) does.
 
-### Args
+#### Args
 
 None.
 
-### Returns
+#### Returns
 
 1 if the level is turned on, otherwise 0.  A level is turned on when its
 number is the same as, or lower than, the logger's level (see ["level"](#level)).
 The default level is `trace`, so all these methods return 1.
 
-### Side Effects
+#### Side Effects
 
 None.
 
-### EXAMPLE
+#### Example
 
-    $logger->level('warning');
-    $logger->is_warn();     # 1
-    $logger->is_error();    # 1 (more serious than warning)
-    $logger->is_info();     # 0 (less serious than warning)
+```
+$logger->level('warning');
+$logger->is_warn();     # 1
+$logger->is_error();    # 1 (more serious than warning)
+$logger->is_info();     # 0 (less serious than warning)
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {}
+```
+{}
+```
 
 Domains: no arguments.  Each predicate is 1 exactly when its level's
 number is at or below the logger's level: at level 0 (emergency) only
 is\_emergency is 1; at level 7 (trace) all are 1.
 
-#### Output
+##### Output
 
-    { type => 'boolean' }
+```perl
+{ type => 'boolean' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    is_X() must be called on an     not called on a logger        Call it on a logger object
-    object, not on the class        (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+is_X() must be called on an     not called on a logger        Call it on a logger object
+object, not on the class        (croak)
+```
 
-## AUTOLOAD
+### Autoload
 
 Handle a call to a method that does not exist.
 
-### Purpose
+#### Purpose
 
 Perl calls this when the code under test calls a method that this class
 does not have - usually a misspelt level, such as `wran`.  Any name
@@ -598,61 +647,69 @@ stopping the test, the message is stored under the name that was called,
 and a notice is printed.  The notice is always printed, whatever the
 `diag` setting, so the mistake is not hidden.
 
-### Args
+#### Args
 
 The same as a level method.
 
-### Returns
+#### Returns
 
 The logger.
 
-### Side Effects
+#### Side Effects
 
 Adds one entry, with the called name as its level.  Prints
 `no method 'name'`.
 
-### EXAMPLE
+#### Example
 
-    $logger->wran('oops');    # stored at level 'wran'; a notice is printed
-    is($logger->count('wran'), 1, 'the misspelt call was stored');
+```
+$logger->wran('oops');    # stored at level 'wran'; a notice is printed
+is($logger->count('wran'), 1, 'the misspelt call was stored');
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        messages => { type => 'arrayref', position => 0, slurp => 1 },
-    }
+```perl
+{
+    messages => { type => 'arrayref', position => 0, slurp => 1 },
+}
+```
 
 Domains: any method name, including '', non-ASCII names and very long
 names.  The message is stored under the name in lower case.
 
-#### Output
+##### Output
 
-    { type => 'object', isa => 'Test::Log::Abstraction' }
+```perl
+{ type => 'object', isa => 'Test::Log::Abstraction' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    no method 'X'                   X is not a method or a level  Fix the method name
-                                    (notice; the test goes on)
-    X() must be called on an        an unknown method was called  Call it on a logger object
-    object, not on the class        on the class name (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+no method 'X'                   X is not a method or a level  Fix the method name
+                                (notice; the test goes on)
+X() must be called on an        an unknown method was called  Call it on a logger object
+object, not on the class        on the class name (croak)
+```
 
-## messages
+### Messages
 
 Get the stored messages.
 
-### Purpose
+#### Purpose
 
 Let your test look at everything that was logged.
 
-### Args
+#### Args
 
 None.
 
-### Returns
+#### Returns
 
 A reference to a new array.  It has one hash reference for each message,
 oldest first.  Each hash has these keys:
@@ -665,167 +722,195 @@ The array is a copy, as in [Log::Abstraction](https://metacpan.org/pod/Log%3A%3A
 in it does not change the stored messages.  But the hashes in it are the
 stored hashes (see ["COMMON PITFALLS"](#common-pitfalls)).
 
-### Side Effects
+#### Side Effects
 
 None.
 
-### EXAMPLE
+#### Example
 
-    foreach my $entry (@{ $logger->messages() }) {
-        diag("$entry->{level}: $entry->{message}");
-    }
+```perl
+foreach my $entry (@{ $logger->messages() }) {
+    diag("$entry->{level}: $entry->{message}");
+}
 
-    my $first = $logger->messages()->[0];
-    is($first->{level}, 'warn', 'the first message is a warning');
+my $first = $logger->messages()->[0];
+is($first->{level}, 'warn', 'the first message is a warning');
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {}
+```
+{}
+```
 
-#### Output
+##### Output
 
-    { type => 'arrayref' }
+```perl
+{ type => 'arrayref' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    messages() must be called on    not called on a logger        Call it on a logger object
-    an object, not on the class     (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+messages() must be called on    not called on a logger        Call it on a logger object
+an object, not on the class     (croak)
+```
 
-## clear
+### Clear
 
 Delete all stored messages.
 
-### Purpose
+#### Purpose
 
 Start again with an empty list, for example between two steps of a test.
 
-### Args
+#### Args
 
 None.
 
-### Returns
+#### Returns
 
 The logger, so you can chain calls.
 
-### Side Effects
+#### Side Effects
 
 All stored messages are deleted.  The settings (`verbose`, `level`,
 `diag`, language) do not change.
 
-### EXAMPLE
+#### Example
 
-    $logger->clear();
-    $logger->clear()->empty('nothing logged yet');
+```
+$logger->clear();
+$logger->clear()->empty('nothing logged yet');
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {}
+```
+{}
+```
 
-#### Output
+##### Output
 
-    { type => 'object', isa => 'Test::Log::Abstraction' }
+```perl
+{ type => 'object', isa => 'Test::Log::Abstraction' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    clear() must be called on an    not called on a logger        Call it on a logger object
-    object, not on the class        (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+clear() must be called on an    not called on a logger        Call it on a logger object
+object, not on the class        (croak)
+```
 
-## count
+### Count
 
 Count the stored messages.
 
-### Purpose
+#### Purpose
 
 Check how much was logged, in total or at one level.
 
-### Args
+#### Args
 
 - `$level` - optional.  Count only messages at this level.  Upper or
 lower case does not matter.  Different names for the same level are counted
 apart: `count('warn')` does not count `warning()` calls.
 
-### Returns
+#### Returns
 
 The number of messages: 0 or more.
 
-### Side Effects
+#### Side Effects
 
 None.
 
-### EXAMPLE
+#### Example
 
-    is($logger->count(), 3, 'three messages in total');
-    is($logger->count('error'), 1, 'one of them is an error');
+```
+is($logger->count(), 3, 'three messages in total');
+is($logger->count('error'), 1, 'one of them is an error');
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        level => { type => 'string', optional => 1, position => 0 },
-    }
+```perl
+{
+    level => { type => 'string', optional => 1, position => 0 },
+}
+```
 
 Domains: undef counts every message; a string counts messages at that
 level, any case ('', '0' and unknown names give 0; aliases are separate
 names).  Invalid: any reference.
 
-#### Output
+##### Output
 
-    { type => 'integer', min => 0 }
+```perl
+{ type => 'integer', min => 0 }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    count() must be called on an    not called on a logger        Call it on a logger object
-    object, not on the class        (croak)
-    invalid argument: ...           the level is not a string     Give a level name
-                                    (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+count() must be called on an    not called on a logger        Call it on a logger object
+object, not on the class        (croak)
+invalid argument: ...           the level is not a string     Give a level name
+                                (croak)
+```
 
-## like
+### Like
 
 Test that a stored message matches a pattern.
 
-### Purpose
+#### Purpose
 
 The test passes if at least one stored message matches the pattern.
 
-### Args
+#### Args
 
 - `$pattern` - required.  A `qr//` regular expression, or a string.
 A string is also used as a regular expression.
 - `$name` - optional.  The name of the test.
 
-### Returns
+#### Returns
 
 True if the test passed, false if it failed.
 
-### Side Effects
+#### Side Effects
 
 Adds one test result to the TAP output.  If the test fails, all stored
 messages are printed under it (at most 20, then a count of the others).
 
-### EXAMPLE
+#### Example
 
-    $logger->like(qr/updated/, 'the update was logged');
-    $logger->like(qr/^Cannot open/i, 'the open error was logged');
+```
+$logger->like(qr/updated/, 'the update was logged');
+$logger->like(qr/^Cannot open/i, 'the open error was logged');
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        pattern => { type => ['regex', 'string'], position => 0 },
-        name => { type => 'string', optional => 1, position => 1 },
-    }
+```perl
+{
+    pattern => { type => ['regex', 'string'], position => 0 },
+    name => { type => 'string', optional => 1, position => 1 },
+}
+```
 
 Domains: pattern - a qr// or a string, which is compiled as a regular
 expression ('' matches every message).  Invalid: undef, any other
@@ -833,454 +918,522 @@ reference, a string that does not compile or can never match.  name -
 undef, or any string (including '' and non-ASCII text).  Invalid: a
 reference.
 
-#### Output
+##### Output
 
-    { type => 'boolean' }
+```perl
+{ type => 'boolean' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    like() needs a pattern          no pattern was given (croak)  Give a qr// or a string
-    invalid argument: ...           the pattern is not a qr// or  Give a qr// or a string
-                                    a string, does not compile,   that is a valid regex
-                                    or can never match (croak)
-    N messages were captured:       the test failed; the stored   Compare them with the pattern
-                                    messages follow (output)
-    like() must be called on        not called on a logger        Call it on a logger object
-    an object, not on the class     (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+like() needs a pattern          no pattern was given (croak)  Give a qr// or a string
+invalid argument: ...           the pattern is not a qr// or  Give a qr// or a string
+                                a string, does not compile,   that is a valid regex
+                                or can never match (croak)
+N messages were captured:       the test failed; the stored   Compare them with the pattern
+                                messages follow (output)
+like() must be called on        not called on a logger        Call it on a logger object
+an object, not on the class     (croak)
+```
 
-## unlike
+### Unlike
 
 Test that no stored message matches a pattern.
 
-### Purpose
+#### Purpose
 
 The test passes if no stored message matches the pattern.  It also passes
 when there are no messages.
 
-### Args
+#### Args
 
 - `$pattern` - required.  A `qr//` regular expression, or a string.
 A string is also used as a regular expression.
 - `$name` - optional.  The name of the test.
 
-### Returns
+#### Returns
 
 True if the test passed, false if it failed.
 
-### Side Effects
+#### Side Effects
 
 Adds one test result to the TAP output.  If the test fails, the messages
 that matched are printed under it.
 
-### EXAMPLE
+#### Example
 
-    $logger->unlike(qr/fatal/i, 'nothing fatal was logged');
+```
+$logger->unlike(qr/fatal/i, 'nothing fatal was logged');
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        pattern => { type => ['regex', 'string'], position => 0 },
-        name => { type => 'string', optional => 1, position => 1 },
-    }
+```perl
+{
+    pattern => { type => ['regex', 'string'], position => 0 },
+    name => { type => 'string', optional => 1, position => 1 },
+}
+```
 
 Domains: as for ["like"](#like).  Note that '' matches every message, so
 unlike('') fails whenever anything was logged.
 
-#### Output
+##### Output
 
-    { type => 'boolean' }
+```perl
+{ type => 'boolean' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    unlike() needs a pattern        no pattern was given (croak)  Give a qr// or a string
-    invalid argument: ...           the pattern is not a qr// or  Give a qr// or a string
-                                    a string, does not compile,   that is a valid regex
-                                    or can never match (croak)
-    N messages matched:             the test failed; the          Look at the listed messages
-                                    matching messages follow
-    unlike() must be called on      not called on a logger        Call it on a logger object
-    an object, not on the class     (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+unlike() needs a pattern        no pattern was given (croak)  Give a qr// or a string
+invalid argument: ...           the pattern is not a qr// or  Give a qr// or a string
+                                a string, does not compile,   that is a valid regex
+                                or can never match (croak)
+N messages matched:             the test failed; the          Look at the listed messages
+                                matching messages follow
+unlike() must be called on      not called on a logger        Call it on a logger object
+an object, not on the class     (croak)
+```
 
-## has\_level
+### Has\_Level
 
 Test that something was logged at a level.
 
-### Purpose
+#### Purpose
 
 The test passes if at least one message was stored at this level.
 
-### Args
+#### Args
 
 - `$level` - required.  The level name.  Upper or lower case does
 not matter.  Different names for the same level are different:
 `has_level('warn')` does not see `warning()` calls.
 - `$name` - optional.  The name of the test.
 
-### Returns
+#### Returns
 
 True if the test passed, false if it failed.
 
-### Side Effects
+#### Side Effects
 
 Adds one test result to the TAP output.  If the test fails, all stored
 messages are printed under it, so you can see which levels were used.
 
-### EXAMPLE
+#### Example
 
-    $logger->has_level('error', 'the failure was logged');
+```
+$logger->has_level('error', 'the failure was logged');
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        level => { type => 'string', position => 0 },
-        name => { type => 'string', optional => 1, position => 1 },
-    }
+```perl
+{
+    level => { type => 'string', position => 0 },
+    name => { type => 'string', optional => 1, position => 1 },
+}
+```
 
 Domains: level - a string, any case ('' and unknown names match
 nothing; aliases are separate names).  Invalid: undef, any reference.
 name - as for ["like"](#like).
 
-#### Output
+##### Output
 
-    { type => 'boolean' }
+```perl
+{ type => 'boolean' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    has_level() needs a level name  no level was given (croak)    Give a level name
-    invalid argument: ...           the level is not a string     Give a level name
-                                    (croak)
-    N messages were captured:       the test failed; the stored   Look at the listed levels
-                                    messages follow (output)
-    has_level() must be called on   not called on a logger        Call it on a logger object
-    an object, not on the class     (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+has_level() needs a level name  no level was given (croak)    Give a level name
+invalid argument: ...           the level is not a string     Give a level name
+                                (croak)
+N messages were captured:       the test failed; the stored   Look at the listed levels
+                                messages follow (output)
+has_level() must be called on   not called on a logger        Call it on a logger object
+an object, not on the class     (croak)
+```
 
-## empty
+### Empty
 
 Test that nothing was logged.
 
-### Purpose
+#### Purpose
 
 The test passes if there are no stored messages.  Use it to check that a
 normal run logs nothing.
 
-### Args
+#### Args
 
 - `$name` - optional.  The name of the test.
 
-### Returns
+#### Returns
 
 True if the test passed, false if it failed.
 
-### Side Effects
+#### Side Effects
 
 Adds one test result to the TAP output.  If the test fails, the stored
 messages are printed under it.
 
-### EXAMPLE
+#### Example
 
-    $logger->empty('a normal run logs nothing');
+```
+$logger->empty('a normal run logs nothing');
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        name => { type => 'string', optional => 1, position => 0 },
-    }
+```perl
+{
+    name => { type => 'string', optional => 1, position => 0 },
+}
+```
 
 Domains: name - undef, or any string.  Invalid: a reference.
 
-#### Output
+##### Output
 
-    { type => 'boolean' }
+```perl
+{ type => 'boolean' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    N messages were captured:       the test failed; the stored   Look at the listed messages
-                                    messages follow (output)
-    empty() must be called on       not called on a logger        Call it on a logger object
-    an object, not on the class     (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+N messages were captured:       the test failed; the stored   Look at the listed messages
+                                messages follow (output)
+empty() must be called on       not called on a logger        Call it on a logger object
+an object, not on the class     (croak)
+```
 
-## verbose
+### Verbose
 
 Get or change verbose mode.
 
-### Purpose
+#### Purpose
 
 In verbose mode, every message is printed, whatever the `diag` rule says.
 This helps when you are finding out why a test fails.
 
-### Args
+#### Args
 
 - `$value` - optional.  True turns verbose mode on, false turns it
 off.  Without an argument, nothing changes.
 
-### Returns
+#### Returns
 
 The setting after the call: 1 (on) or 0 (off).
 
-### Side Effects
+#### Side Effects
 
 Changes the setting, when you give an argument.
 
-### EXAMPLE
+#### Example
 
-    $logger->verbose(1);           # print everything from now on
-    my $on = $logger->verbose();   # 1
+```perl
+$logger->verbose(1);           # print everything from now on
+my $on = $logger->verbose();   # 1
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        value => { type => 'scalar', optional => 1, position => 0 },
-    }
+```perl
+{
+    value => { type => 'scalar', optional => 1, position => 0 },
+}
+```
 
 Domains: absent - get only; otherwise Perl truth decides ('0', '' and
 undef are off; '0.0' is on).
 
-#### Output
+##### Output
 
-    { type => 'integer', min => 0, max => 1 }
+```perl
+{ type => 'integer', min => 0, max => 1 }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    verbose() must be called on an  not called on a logger        Call it on a logger object
-    object, not on the class        (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+verbose() must be called on an  not called on a logger        Call it on a logger object
+object, not on the class        (croak)
+```
 
-## level
+### Level
 
 Get or change the logger's level.
 
-### Purpose
+#### Purpose
 
 Code under test may read or change the level, as it can with
 ["level" in Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction#level).  The level only changes the answers of the
 `is_*` methods.  Every message is still stored.
 
-### Args
+#### Args
 
 - `$name` - optional.  A level name.  Upper or lower case does not
 matter.
 
-### Returns
+#### Returns
 
 - No argument: the level's number, from 0 to 7.
 - A known level name: the logger, so you can chain calls.
 - An unknown level name: `undef`, as in [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction).
 
-### Side Effects
+#### Side Effects
 
 With a known name, the level changes.  With an unknown name, nothing
 changes and a warning is printed.
 
-### EXAMPLE
+#### Example
 
-    $logger->level('error');
-    print $logger->level(), "\n";    # 3
+```
+$logger->level('error');
+print $logger->level(), "\n";    # 3
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        name => { type => 'string', optional => 1, position => 0 },
-    }
+```perl
+{
+    name => { type => 'string', optional => 1, position => 0 },
+}
+```
 
 Domains: absent or undef - get only; one of the 16 level names, any
 case - set (0 for emergency to 7 for trace).  Anything else - '', numbers
 such as '0' or '8', unknown names - warns and returns undef.
 
-#### Output
+##### Output
 
-    { type => ['integer', 'object'], optional => 1 }
+```perl
+{ type => ['integer', 'object'], optional => 1 }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    invalid syslog level 'X'        X is not a level name         Use a name from the level table
-                                    (warning; returns undef)
-    level() must be called on       not called on a logger        Call it on a logger object
-    an object, not on the class     (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+invalid syslog level 'X'        X is not a level name         Use a name from the level table
+                                (warning; returns undef)
+level() must be called on       not called on a logger        Call it on a logger object
+an object, not on the class     (croak)
+```
 
-## flush
+### Flush
 
 Do nothing.
 
-### Purpose
+#### Purpose
 
 In [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction), `flush()` sends e-mail messages that are waiting.
 The test logger never sends e-mail, but the code under test may still call
 `flush()`, so it exists.
 
-### Args
+#### Args
 
 None.
 
-### Returns
+#### Returns
 
 The logger, so you can chain calls.
 
-### Side Effects
+#### Side Effects
 
 None.
 
-### EXAMPLE
+#### Example
 
-    $logger->flush();
+```
+$logger->flush();
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {}
+```
+{}
+```
 
-#### Output
+##### Output
 
-    { type => 'object', isa => 'Test::Log::Abstraction' }
+```perl
+{ type => 'object', isa => 'Test::Log::Abstraction' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    flush() must be called on an    not called on a logger        Call it on a logger object
-    object, not on the class        (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+flush() must be called on an    not called on a logger        Call it on a logger object
+object, not on the class        (croak)
+```
 
-## lang
+### Lang
 
 Get the language of this module's messages.
 
-### Purpose
+#### Purpose
 
 Let a test check which language was chosen from the `lang` and `country`
 options or the environment.
 
-### Args
+#### Args
 
 None.
 
-### Returns
+#### Returns
 
 A language code: `en`, `de`, `fr`, `zh`, or a code that you gave in the
 `i18n` option.
 
-### Side Effects
+#### Side Effects
 
 None.
 
-### EXAMPLE
+#### Example
 
-    my $lang = Test::Log::Abstraction->new(country => 'FR')->lang();    # 'fr'
+```perl
+my $lang = Test::Log::Abstraction->new(country => 'FR')->lang();    # 'fr'
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {}
+```
+{}
+```
 
-#### Output
+##### Output
 
-    { type => 'string', matches => qr/\A[a-z]{2,3}\z/ }
+```perl
+{ type => 'string', matches => qr/\A[a-z]{2,3}\z/ }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    lang() must be called on an     not called on a logger        Call it on a logger object
-    object, not on the class        (croak)
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+lang() must be called on an     not called on a logger        Call it on a logger object
+object, not on the class        (croak)
+```
 
-# PROTECTED METHODS
+## Protected Methods
 
 Only this class, and classes that inherit from it, may call these methods
 ([Sub::Protected](https://metacpan.org/pod/Sub%3A%3AProtected) checks this).  A subclass may replace them.
 
-## \_emit
+### \_Emit
 
 Print one line of test output.
 
-### Purpose
+#### Purpose
 
 Every line that this module prints goes through this method.  A subclass
 can replace it to send the lines somewhere else.
 
-### Args
+#### Args
 
 - `$text` - the line to print.
 
-### Returns
+#### Returns
 
 The logger.
 
-### Side Effects
+#### Side Effects
 
 Prints the line as a TAP comment, with ["diag" in Test::Builder](https://metacpan.org/pod/Test%3A%3ABuilder#diag).  This works
 even if the test did not load [Test::More](https://metacpan.org/pod/Test%3A%3AMore).  A Perl character string is
 encoded as UTF-8 first, unless the output already has an encoding layer
 (see ["ENCODING"](#encoding)).
 
-### EXAMPLE
+#### Example
 
-    package My::Logger;
-    use parent -norequire, 'Test::Log::Abstraction';
+```perl
+package My::Logger;
+use parent -norequire, 'Test::Log::Abstraction';
 
-    # Send the lines to STDERR instead of the TAP output
-    sub _emit {
-        my ($self, $text) = @_;
-        print STDERR "$text\n";
-        return $self;
-    }
+# Send the lines to STDERR instead of the TAP output
+sub _emit {
+    my ($self, $text) = @_;
+    print STDERR "$text\n";
+    return $self;
+}
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        text => { type => 'string', position => 0 },
-    }
+```perl
+{
+    text => { type => 'string', position => 0 },
+}
+```
 
-#### Output
+##### Output
 
-    { type => 'object', isa => 'Test::Log::Abstraction' }
+```perl
+{ type => 'object', isa => 'Test::Log::Abstraction' }
+```
 
-### MESSAGES
+#### Messages
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    _emit() is a protected method   called from outside the class Call it from a subclass only
-    ... (croak)                     and its subclasses
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+_emit() is a protected method   called from outside the class Call it from a subclass only
+... (croak)                     and its subclasses
+```
 
-## i18n
+### i18n
 
 Make one of this module's messages, in the logger's language.
 
-### Purpose
+#### Purpose
 
 All the text that this module shows to people comes from here.  So the
 text can be translated, or changed, without changing the code.
 
-### Args
+#### Args
 
 - `$key` - the name of the message, such as `needs_pattern`.
 - `\%args` - optional.  Values for the placeholders in the message.
 `class` is filled in for you (the logger's class).  `count` chooses the
 singular or plural form.  `gender` chooses a gender form.
 
-### How a message template works
+#### How a Message Template Works
 
 A template is a string.  `%{name}s` is replaced by the value called
 `name`.  After the name you can use any `sprintf` format letter, for
@@ -1293,13 +1446,15 @@ A template can also be a hash.  The keys are gender names (such as
 `other` is used when nothing else fits.  `zero` is used for a count of
 0, if it is there.
 
-    {
-        zero  => 'no messages',
-        one   => '%{count}d message',
-        other => '%{count}d messages',
-    }
+```perl
+{
+    zero  => 'no messages',
+    one   => '%{count}d message',
+    other => '%{count}d messages',
+}
+```
 
-### Where the template is found
+#### Where the Template Is Found
 
 The first one found is used:
 
@@ -1310,72 +1465,82 @@ The first one found is used:
 
 If the key is not found anywhere, the key itself is returned.
 
-### Returns
+#### Returns
 
 The finished message, as a Perl character string.
 
-### Side Effects
+#### Side Effects
 
 None.
 
-### EXAMPLE
+#### Example
 
-    # Inside a subclass
-    my $text = $self->i18n('needs_pattern', { method => 'like' });
-    # "Test::Log::Abstraction: like() needs a pattern"
+```perl
+# Inside a subclass
+my $text = $self->i18n('needs_pattern', { method => 'like' });
+# "Test::Log::Abstraction: like() needs a pattern"
 
-    # Your own message, with gender and plural forms.  i18n() is
-    # protected, so call it from a method of your subclass.
-    my $logger = My::Logger->new(i18n => {
-        en => {
-            logged => {
-                male => { one => 'He logged %{count}d line', other => 'He logged %{count}d lines' },
-                other => 'They logged %{count}d lines',
-            },
+# Your own message, with gender and plural forms.  i18n() is
+# protected, so call it from a method of your subclass.
+my $logger = My::Logger->new(i18n => {
+    en => {
+        logged => {
+            male => { one => 'He logged %{count}d line', other => 'He logged %{count}d lines' },
+            other => 'They logged %{count}d lines',
         },
-    });
-    # In a method of My::Logger:
-    $self->i18n('logged', { gender => 'male', count => 2 });    # 'He logged 2 lines'
+    },
+});
+# In a method of My::Logger:
+$self->i18n('logged', { gender => 'male', count => 2 });    # 'He logged 2 lines'
+```
 
-### API SPECIFICATION
+#### Api Specification
 
-#### Input
+##### Input
 
-    {
-        key => { type => 'string', position => 0 },
-        args => { type => 'hashref', optional => 1, position => 1 },
-    }
+```perl
+{
+    key => { type => 'string', position => 0 },
+    args => { type => 'hashref', optional => 1, position => 1 },
+}
+```
 
 Domains: key - any string; undef renders as '', a reference as its
 string form, and an unknown key is returned as it is.  args - a hash
 reference; anything else is ignored.  count - a number selects a plural
 form (0 uses 'zero' when present); anything else uses 'other'.
 
-#### Output
+##### Output
 
-    { type => 'string' }
+```perl
+{ type => 'string' }
+```
 
-### MESSAGES
+#### Messages
 
 It never fails for any key or arguments.  The only error is about who may
 call it:
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    i18n() is a protected method    called from outside the class Call it from a subclass only
-    ... (croak)                     and its subclasses
+```
+Message                         Meaning                       What to do
+------------------------------  ----------------------------  ------------------------------
+i18n() is a protected method    called from outside the class Call it from a subclass only
+... (croak)                     and its subclasses
+```
 
-### PSEUDOCODE
+#### Pseudocode
 
-    language = the logger's language (for a class name: the configured one)
-    template = the first one found in the four places listed above
-    if no template was found, return the key
-    while the template is a hash:
-        choose by gender, else by plural form, else 'other'
-    replace each %{name}format with sprintf(format, the value of name)
-    return the text
+```
+language = the logger's language (for a class name: the configured one)
+template = the first one found in the four places listed above
+if no template was found, return the key
+while the template is a hash:
+    choose by gender, else by plural form, else 'other'
+replace each %{name}format with sprintf(format, the value of name)
+return the text
+```
 
-# LIMITATIONS
+## Limitations
 
 - **It accepts more than the real logger.**  The syslog names
 (`warning`, `err`, `crit`, `emerg`, `panic`, `informational`) are
@@ -1425,237 +1590,274 @@ routine.  For tests that log hundreds of thousands of messages, call
 logger object.  Messages logged in a child process (after `fork`) are not
 seen by the parent.
 
-# DIAGNOSTICS
+## Diagnostics
 
 Each method lists its messages under `MESSAGES`.  All messages can be
 translated or changed; see ["i18n"](#i18n).
 
 The text after `invalid argument:` explains what was wrong, and may show
-the value that was given.  It is cut to 200 characters, and control
-characters in it (such as a newline) are shown as `\xNN`.  So a hostile
-value cannot make an error message enormous, or add lines to the output.
+the value that was given.  Other errors and warnings repeat a name you gave:
+a level name, a diag name, or a method name.  Every value repeated like this
+is cut to 200 characters, and control characters in it (such as a newline,
+or the escape character that starts a terminal control sequence) are shown
+as `\xNN`.  So a hostile value cannot make an error message enormous, add
+a forged `ok` line to the output, or control your terminal.
 
-# SEE ALSO
+## See Also
 
 [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction), [Test::Builder](https://metacpan.org/pod/Test%3A%3ABuilder), [Test::Most](https://metacpan.org/pod/Test%3A%3AMost)
 
-# AUTHOR
+## Author
 
 Nigel Horne, `<njh at nigelhorne.com>`
 
-# FORMAL SPECIFICATION
+## Formal Specification
 
 This section describes each method in the Z notation.  You do not need it
 to use the module.  It is here so that the behaviour is exact.
 
-## State
+### State
 
-    [TEXT, NAME, KEY, TEMPLATE]
-    BOOL ::= true | false
-    LANG == { en, de, fr, zh }
-    SEVERITY == 0 .. 7
+```
+[TEXT, NAME, KEY, TEMPLATE]
+BOOL ::= true | false
+LANG == { en, de, fr, zh }
+SEVERITY == 0 .. 7
 
-    severity : NAME ⇸ SEVERITY
-    catalogue : LANG ⇸ (KEY ⇸ TEMPLATE)
+severity : NAME ⇸ SEVERITY
+catalogue : LANG ⇸ (KEY ⇸ TEMPLATE)
 
-    Entry ≙ [ level : NAME; message : TEXT; fields : TEXT ⇸ TEXT ]
+Entry ≙ [ level : NAME; message : TEXT; fields : TEXT ⇸ TEXT ]
 
-    Logger
-      log       : seq Entry
-      verbose   : BOOL
-      threshold : SEVERITY
-      lang      : LANG
+Logger
+  log       : seq Entry
+  verbose   : BOOL
+  threshold : SEVERITY
+  lang      : LANG
+```
 
 `severity` is the level table under ["Levels and how serious they are"](#levels-and-how-serious-they-are).
 `catalogue` is the built-in message table.  `ΔLogger` means the method
 may change the state; `ΞLogger` means it does not.
 
-## new
+### New
 
-    New
-      Logger'
-      verbose? : BOOL
-      level? : NAME
-      lang? : LANG
-      ─────────
-      level? ∈ dom severity
-      log' = ⟨⟩
-      verbose' = verbose?
-      threshold' = severity level?
-      lang' = lang?
+```
+New
+  Logger'
+  verbose? : BOOL
+  level? : NAME
+  lang? : LANG
+  ─────────
+  level? ∈ dom severity
+  log' = ⟨⟩
+  verbose' = verbose?
+  threshold' = severity level?
+  lang' = lang?
 
-    Clone
-      ΞLogger
-      clone! : Logger
-      ─────────
-      clone!.log = log
-      clone!.verbose = verbose
-      clone!.threshold = threshold
-      clone!.lang = lang
+Clone
+  ΞLogger
+  clone! : Logger
+  ─────────
+  clone!.log = log
+  clone!.verbose = verbose
+  clone!.threshold = threshold
+  clone!.lang = lang
+```
 
 `Clone` is `$logger->new()` with no options.  Options that are given
 replace the matching values, as in `New`.
 
-## trace, debug, info, notice, warn, error, fatal, critical, alert, emergency
+### Trace, Debug, Info, Notice, Warn, Error, Fatal, Critical, Alert, Emergency
 
-    Log
-      ΔLogger
-      name? : NAME
-      text? : TEXT
-      ─────────
-      name? ∈ dom severity
-      log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
-      verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+```
+Log
+  ΔLogger
+  name? : NAME
+  text? : TEXT
+  ─────────
+  name? ∈ dom severity
+  log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
+  verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+```
 
-## is\_trace, is\_debug, is\_info, is\_notice, is\_warn, is\_error, is\_critical, is\_alert, is\_emergency
+### Is\_Trace, Is\_Debug, Is\_Info, Is\_Notice, Is\_Warn, Is\_Error, Is\_Critical, Is\_Alert, Is\_Emergency
 
-    IsLevel
-      ΞLogger
-      name? : NAME
-      result! : BOOL
-      ─────────
-      name? ∈ dom severity
-      result! = true ⇔ severity name? ≤ threshold
+```
+IsLevel
+  ΞLogger
+  name? : NAME
+  result! : BOOL
+  ─────────
+  name? ∈ dom severity
+  result! = true ⇔ severity name? ≤ threshold
+```
 
-## AUTOLOAD
+### Autoload
 
-    Unknown
-      ΔLogger
-      name? : NAME
-      text? : TEXT
-      ─────────
-      name? ∉ dom severity
-      log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
-      verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+```
+Unknown
+  ΔLogger
+  name? : NAME
+  text? : TEXT
+  ─────────
+  name? ∉ dom severity
+  log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
+  verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+```
 
-## messages
+### Messages
 
-    Messages
-      ΞLogger
-      result! : seq Entry
-      ─────────
-      result! = log
+```
+Messages
+  ΞLogger
+  result! : seq Entry
+  ─────────
+  result! = log
+```
 
-## clear
+### Clear
 
-    Clear
-      ΔLogger
-      ─────────
-      log' = ⟨⟩
-      verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+```
+Clear
+  ΔLogger
+  ─────────
+  log' = ⟨⟩
+  verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+```
 
-## count
+### Count
 
-    Count
-      ΞLogger
-      level? : NAME
-      result! : ℕ
-      ─────────
-      result! = # (log ↾ { e : Entry | e.level = level? })
+```
+Count
+  ΞLogger
+  level? : NAME
+  result! : ℕ
+  ─────────
+  result! = # (log ↾ { e : Entry | e.level = level? })
 
-    CountAll
-      ΞLogger
-      result! : ℕ
-      ─────────
-      result! = # log
+CountAll
+  ΞLogger
+  result! : ℕ
+  ─────────
+  result! = # log
+```
 
-## like
+### Like
 
-    Like
-      ΞLogger
-      pattern? : ℙ TEXT
-      result! : BOOL
-      ─────────
-      result! = true ⇔ (∃ e : ran log • e.message ∈ pattern?)
+```
+Like
+  ΞLogger
+  pattern? : ℙ TEXT
+  result! : BOOL
+  ─────────
+  result! = true ⇔ (∃ e : ran log • e.message ∈ pattern?)
+```
 
-## unlike
+### Unlike
 
-    Unlike
-      ΞLogger
-      pattern? : ℙ TEXT
-      result! : BOOL
-      ─────────
-      result! = true ⇔ (∀ e : ran log • e.message ∉ pattern?)
+```
+Unlike
+  ΞLogger
+  pattern? : ℙ TEXT
+  result! : BOOL
+  ─────────
+  result! = true ⇔ (∀ e : ran log • e.message ∉ pattern?)
+```
 
-## has\_level
+### Has\_Level
 
-    HasLevel
-      ΞLogger
-      level? : NAME
-      result! : BOOL
-      ─────────
-      result! = true ⇔ (∃ e : ran log • e.level = level?)
+```
+HasLevel
+  ΞLogger
+  level? : NAME
+  result! : BOOL
+  ─────────
+  result! = true ⇔ (∃ e : ran log • e.level = level?)
+```
 
-## empty
+### Empty
 
-    Empty
-      ΞLogger
-      result! : BOOL
-      ─────────
-      result! = true ⇔ log = ⟨⟩
+```
+Empty
+  ΞLogger
+  result! : BOOL
+  ─────────
+  result! = true ⇔ log = ⟨⟩
+```
 
-## verbose
+### Verbose
 
-    SetVerbose
-      ΔLogger
-      value? : BOOL
-      result! : BOOL
-      ─────────
-      verbose' = value?
-      result! = verbose'
-      log' = log ∧ threshold' = threshold ∧ lang' = lang
+```
+SetVerbose
+  ΔLogger
+  value? : BOOL
+  result! : BOOL
+  ─────────
+  verbose' = value?
+  result! = verbose'
+  log' = log ∧ threshold' = threshold ∧ lang' = lang
 
-    GetVerbose
-      ΞLogger
-      result! : BOOL
-      ─────────
-      result! = verbose
+GetVerbose
+  ΞLogger
+  result! : BOOL
+  ─────────
+  result! = verbose
+```
 
-## level
+### Level
 
-    SetLevel
-      ΔLogger
-      name? : NAME
-      ─────────
-      name? ∈ dom severity ⇒ threshold' = severity name?
-      name? ∉ dom severity ⇒ threshold' = threshold
-      log' = log ∧ verbose' = verbose ∧ lang' = lang
+```
+SetLevel
+  ΔLogger
+  name? : NAME
+  ─────────
+  name? ∈ dom severity ⇒ threshold' = severity name?
+  name? ∉ dom severity ⇒ threshold' = threshold
+  log' = log ∧ verbose' = verbose ∧ lang' = lang
 
-    GetLevel
-      ΞLogger
-      result! : SEVERITY
-      ─────────
-      result! = threshold
+GetLevel
+  ΞLogger
+  result! : SEVERITY
+  ─────────
+  result! = threshold
+```
 
-## flush
+### Flush
 
-    Flush
-      ΞLogger
+```
+Flush
+  ΞLogger
+```
 
-## lang
+### Lang
 
-    Lang
-      ΞLogger
-      result! : LANG
-      ─────────
-      result! = lang
+```
+Lang
+  ΞLogger
+  result! : LANG
+  ─────────
+  result! = lang
+```
 
-## i18n
+### i18n
 
-    I18n
-      ΞLogger
-      key? : KEY
-      result! : TEXT
-      ─────────
-      key? ∈ dom (catalogue lang) ⇒ result! = render (catalogue lang key?)
-      key? ∉ dom (catalogue lang) ∧ key? ∈ dom (catalogue en) ⇒
-          result! = render (catalogue en key?)
-      key? ∉ dom (catalogue lang) ∪ dom (catalogue en) ⇒ result! = key?
+```
+I18n
+  ΞLogger
+  key? : KEY
+  result! : TEXT
+  ─────────
+  key? ∈ dom (catalogue lang) ⇒ result! = render (catalogue lang key?)
+  key? ∉ dom (catalogue lang) ∧ key? ∈ dom (catalogue en) ⇒
+      result! = render (catalogue en key?)
+  key? ∉ dom (catalogue lang) ∪ dom (catalogue en) ⇒ result! = key?
+```
 
 `render` fills in the placeholders.  The `i18n` option is searched
 before `catalogue` in each language.
 
-# STATE DIAGRAM
+## State Diagram
 
 A logger has two main states: **EMPTY** (no stored messages) and
 **CAPTURING** (one or more stored messages).  Two settings, **verbose** and
@@ -1663,70 +1865,72 @@ A logger has two main states: **EMPTY** (no stored messages) and
 states.  Methods that only read or test (`like`, `count`, `is_debug`,
 and so on) never change the state.
 
-                  new(%options)
-                  [check options; choose language,
-                   diag rule and level]
-                        |
-                        | invalid option
-                        +----------------------> croak, no logger made
-                        |
-                        v
-    +-----------------------------------------+
-    |                 EMPTY                   |<----------------+
-    |  messages = ()                          |                 |
-    +-----------------------------------------+                 |
-         |                                                      |
-         | trace() ... emergency(), warning() ... panic()       | clear()
-         | [store the message; print it if the diag rule        | [delete all
-         |  or verbose allows; $@ and $! are kept]              |  messages;
-         |                                                      |  return the
-         | wran() or any unknown method (AUTOLOAD)              |  logger]
-         | [store under that name; always print                 |
-         |  "no method 'wran'"]                                 |
-         v                                                      |
-    +-----------------------------------------+                 |
-    |               CAPTURING                 |-----------------+
-    |  messages = (m1, m2, ...)               |
-    +-----------------------------------------+
-         |       ^
-         |       | any level method, or an unknown method
-         +-------+ [store one more message; maybe print it]
+```perl
+              new(%options)
+              [check options; choose language,
+               diag rule and level]
+                    |
+                    | invalid option
+                    +----------------------> croak, no logger made
+                    |
+                    v
++-----------------------------------------+
+|                 EMPTY                   |<----------------+
+|  messages = ()                          |                 |
++-----------------------------------------+                 |
+     |                                                      |
+     | trace() ... emergency(), warning() ... panic()       | clear()
+     | [store the message; print it if the diag rule        | [delete all
+     |  or verbose allows; $@ and $! are kept]              |  messages;
+     |                                                      |  return the
+     | wran() or any unknown method (AUTOLOAD)              |  logger]
+     | [store under that name; always print                 |
+     |  "no method 'wran'"]                                 |
+     v                                                      |
++-----------------------------------------+                 |
+|               CAPTURING                 |-----------------+
+|  messages = (m1, m2, ...)               |
++-----------------------------------------+
+     |       ^
+     |       | any level method, or an unknown method
+     +-------+ [store one more message; maybe print it]
 
-    Changes allowed in BOTH states (the state stays the same):
+Changes allowed in BOTH states (the state stays the same):
 
-      verbose(1) / verbose(0)   verbose on / off
-                                [from now on: print every message / use
-                                 the diag rule]
-      level('error')            level number = 3
-                                [the is_* answers change; nothing is
-                                 hidden]
-      level('bogus')            no change [warning; returns undef]
+  verbose(1) / verbose(0)   verbose on / off
+                            [from now on: print every message / use
+                             the diag rule]
+  level('error')            level number = 3
+                            [the is_* answers change; nothing is
+                             hidden]
+  level('bogus')            no change [warning; returns undef]
 
-    Read-only calls in BOTH states (the state stays the same):
+Read-only calls in BOTH states (the state stays the same):
 
-      like, unlike, has_level, empty
-                                [one TAP result; on failure, print the
-                                 messages that explain it]
-      count, messages, lang, is_trace ... is_emergency, flush
-                                [return a value only]
-      like(undef), has_level(undef), a bad argument, or any method
-      called on something that is not a logger (the class name, undef,
-      a plain reference, or another class's object)
-                                [croak; no change]
+  like, unlike, has_level, empty
+                            [one TAP result; on failure, print the
+                             messages that explain it]
+  count, messages, lang, is_trace ... is_emergency, flush
+                            [return a value only]
+  like(undef), has_level(undef), a bad argument, or any method
+  called on something that is not a logger (the class name, undef,
+  a plain reference, or another class's object)
+                            [croak; no change]
 
-    Copying (the original logger does not change):
+Copying (the original logger does not change):
 
-      EMPTY     --- $logger->new(%options) ---> a new logger in EMPTY
-      CAPTURING --- $logger->new(%options) ---> a new logger in CAPTURING
-                    [the new logger has copies of the messages, and the
-                     same verbose and level, unless new values are given]
+  EMPTY     --- $logger->new(%options) ---> a new logger in EMPTY
+  CAPTURING --- $logger->new(%options) ---> a new logger in CAPTURING
+                [the new logger has copies of the messages, and the
+                 same verbose and level, unless new values are given]
 
-    End:
+End:
 
-      EMPTY or CAPTURING --- the last reference goes away ---> destroyed
-                    [DESTROY does nothing; nothing is stored or printed]
+  EMPTY or CAPTURING --- the last reference goes away ---> destroyed
+                [DESTROY does nothing; nothing is stored or printed]
+```
 
-# LICENCE AND COPYRIGHT
+## Licence and Copyright
 
 Copyright 2026 Nigel Horne.
 

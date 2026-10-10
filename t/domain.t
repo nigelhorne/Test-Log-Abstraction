@@ -397,8 +397,10 @@ subtest 'level: name' => sub {
 	}
 	foreach my $bad ('', '0', '8', 'loud', "warn\n") {
 		(my $label = $bad) =~ s/\n/\\n/g;
+		# A control character is shown escaped, so it cannot start a line
+		(my $shown = $bad) =~ s/\n/\\x0A/g;
 		my $result = 'unset';
-		like(warning { $result = $logger->level($bad) }, at_caller("invalid syslog level '$bad'"), "invalid '$label': documented warning");
+		like(warning { $result = $logger->level($bad) }, at_caller("invalid syslog level '$shown'"), "invalid '$label': documented warning");
 		is($result, undef, "invalid '$label': undef");
 	}
 	is($logger->level(), $LEAST_SEVERE, 'unchanged by the invalid names');
