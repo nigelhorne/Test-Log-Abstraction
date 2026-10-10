@@ -204,31 +204,16 @@ $Test::Log::Abstraction::config{'diag'} = 'none';
 
 A change only affects loggers that are created after it.
 
-### Moving From T/Lib/MyLogger.pm
-
-Many distributions have their own copy of a small test logger in
-`t/lib/MyLogger.pm`.  To use this module instead, change each test file
-from:
-
-```perl
-use lib 't/lib';
-use MyLogger;
-...
-logger => MyLogger->new()
-```
-
-to:
+You can also pass the result of [Object::Configure](https://metacpan.org/pod/Object%3A%3AConfigure) straight to `new()`.
+Settings in environment variables named `Test__Log__Abstraction__KEY`
+then override the arguments; the extra keys that [Object::Configure](https://metacpan.org/pod/Object%3A%3AConfigure)
+adds (such as its own `logger`) are ignored:
 
 ```perl
-use Test::Log::Abstraction;
-...
-logger => Test::Log::Abstraction->new()
+# In the shell: export Test__Log__Abstraction__diag=none
+my $params = Object::Configure::configure('Test::Log::Abstraction', { level => 'error' });
+my $logger = Test::Log::Abstraction->new($params);
 ```
-
-Then delete `t/lib/MyLogger.pm`.  This module is the same in every
-distribution.  It does not loop forever when a level method is given
-`undef` (an old MyLogger bug; see `t/autoload.t`).  And it keeps every
-message, so your tests can check them.
 
 ## Common Pitfalls
 
@@ -356,8 +341,7 @@ is not given.
 
 Other options are allowed and ignored.  (A [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction)
 configuration hash can be passed unchanged.)  If you pass an odd number of
-arguments, they are all ignored.  This is for the old MyLogger code, which
-sometimes passed one stray argument.
+arguments, they are all ignored.
 
 #### Three Ways to Call It
 
@@ -1461,8 +1445,8 @@ return the text
 - **It accepts more than the real logger.**  The syslog names
 (`warning`, `err`, `crit`, `emerg`, `panic`, `informational`) are
 methods here, but not in [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction) 0.39.  Code that calls them
-passes its tests, and then stops with an error in production.  They are
-kept for the old MyLogger code.  A `strict` option, which allows only the
+passes its tests, and then stops with an error in production.
+A `strict` option, which allows only the
 real [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction) methods, would be safer.
 - **Messages are stored under the name that was called.**  See
 ["COMMON PITFALLS"](#common-pitfalls).  Your test must use the same name as the code under

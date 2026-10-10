@@ -209,27 +209,14 @@ L<Object::Configure>:
 
 A change only affects loggers that are created after it.
 
-=head2 Moving from t/lib/MyLogger.pm
+You can also pass the result of L<Object::Configure> straight to C<new()>.
+Settings in environment variables named C<Test__Log__Abstraction__KEY>
+then override the arguments; the extra keys that L<Object::Configure>
+adds (such as its own C<logger>) are ignored:
 
-Many distributions have their own copy of a small test logger in
-F<t/lib/MyLogger.pm>.  To use this module instead, change each test file
-from:
-
-    use lib 't/lib';
-    use MyLogger;
-    ...
-    logger => MyLogger->new()
-
-to:
-
-    use Test::Log::Abstraction;
-    ...
-    logger => Test::Log::Abstraction->new()
-
-Then delete F<t/lib/MyLogger.pm>.  This module is the same in every
-distribution.  It does not loop forever when a level method is given
-C<undef> (an old MyLogger bug; see F<t/autoload.t>).  And it keeps every
-message, so your tests can check them.
+    # In the shell: export Test__Log__Abstraction__diag=none
+    my $params = Object::Configure::configure('Test::Log::Abstraction', { level => 'error' });
+    my $logger = Test::Log::Abstraction->new($params);
 
 =head1 COMMON PITFALLS
 
@@ -639,8 +626,7 @@ C<< { language => { message_key => template } } >>.  See L</i18n>.
 
 Other options are allowed and ignored.  (A L<Log::Abstraction>
 configuration hash can be passed unchanged.)  If you pass an odd number of
-arguments, they are all ignored.  This is for the old MyLogger code, which
-sometimes passed one stray argument.
+arguments, they are all ignored.
 
 =head3 Three ways to call it
 
@@ -2452,8 +2438,8 @@ sub _croak {
 =item * B<It accepts more than the real logger.>  The syslog names
 (C<warning>, C<err>, C<crit>, C<emerg>, C<panic>, C<informational>) are
 methods here, but not in L<Log::Abstraction> 0.39.  Code that calls them
-passes its tests, and then stops with an error in production.  They are
-kept for the old MyLogger code.  A C<strict> option, which allows only the
+passes its tests, and then stops with an error in production.
+A C<strict> option, which allows only the
 real L<Log::Abstraction> methods, would be safer.
 
 =item * B<Messages are stored under the name that was called.>  See

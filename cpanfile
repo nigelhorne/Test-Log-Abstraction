@@ -20,7 +20,12 @@ on 'test' => sub {
 	requires 'Errno';
 	requires 'Exporter';
 	requires 'Test::Builder::Tester';
+	requires 'File::Temp';
+	requires 'JSON::PP';
 	requires 'Test::Memory::Cycle';
+	requires 'Test::Permissions';
+	requires 'Test::Without::Module';
+	requires 'Time::HiRes';
 	requires 'Test::Mockingbird', '0.14';
 	requires 'Test::Most';
 	requires 'Test::Returns', '0.04';
