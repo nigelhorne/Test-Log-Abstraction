@@ -1,6 +1,9 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Fixed: French and German notices were printed as Latin-1, not UTF-8
+	Documentation rewritten in plain English, with COMMON PITFALLS,
+		ENCODING, FORMAL SPECIFICATION and STATE DIAGRAM sections
 	Fixed: a clone ignored a new diag option; an option called 'messages'
 		replaced the capture; a self-referential structure recursed forever;
 		Test::Log::Abstraction::new(%opts) took the first option as the class;

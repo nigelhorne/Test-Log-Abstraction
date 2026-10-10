@@ -107,6 +107,12 @@ subtest 'translated diagnostics are printed as UTF-8 without warnings' => sub {
 	my $expected = Encode::encode('UTF-8', $logger->i18n('no_method', { method => 'nolevel' }));
 	like($out, qr/\Q$expected\E/, 'notice is UTF-8 encoded');
 
+	# Regression: French and German text has no character above 0xFF, and
+	# was printed as Latin-1 instead of UTF-8
+	my $fr = $class->new(lang => 'fr', diag => 'none');
+	$out = capture_diag { $fr->nolevel('x') };
+	like($out, qr/aucune m\xc3\xa9thode 'nolevel'/, 'French notice is UTF-8, not Latin-1');
+
 	# A character string logged by the code under test is encoded too
 	my $en = $class->new(diag => 'all');
 	$out = capture_diag { $en->warn("snowman \x{2603}") };

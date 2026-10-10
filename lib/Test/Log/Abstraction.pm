@@ -1,7 +1,5 @@
 package Test::Log::Abstraction;
 
-=encoding utf8
-
 =head1 NAME
 
 Test::Log::Abstraction - Capture log output in tests and assert on it
@@ -12,122 +10,345 @@ Test::Log::Abstraction - Capture log output in tests and assert on it
 
 =head1 SYNOPSIS
 
+=head2 Check what your code logged
+
     use Test::Most;
     use Test::Log::Abstraction;
 
+    # Give the test logger to the code that you are testing
     my $logger = Test::Log::Abstraction->new();
     my $obj = Some::Class->new(logger => $logger);
 
     $obj->do_something();
 
-    # Assertions on what was logged; each is a TAP test
+    # Each of these is one TAP test
     $logger->like(qr/updated/, 'do_something() logs that it updated');
     $logger->has_level('error', 'an error was logged');
-    $logger->unlike(qr/fatal/, 'nothing fatal');
-    is($logger->count(), 3, 'three messages');
-    $logger->clear();
+    $logger->unlike(qr/fatal/, 'nothing fatal was logged');
+    is($logger->count(), 3, 'three messages were logged');
 
-    # Or simply look at the messages
-    diag($_->{'message'}) foreach @{ $logger->messages() };
+    done_testing();
+
+=head2 Check that nothing was logged
+
+    my $logger = Test::Log::Abstraction->new();
+    Some::Class->new(logger => $logger)->run();
+    $logger->empty('a normal run logs nothing');
+
+=head2 Test several steps with one logger
+
+    my $logger = Test::Log::Abstraction->new();
+    my $obj = Some::Class->new(logger => $logger);
+
+    $obj->load('good.csv');
+    $logger->empty('good file: no messages');
+
+    $logger->clear();    # forget the messages from the first step
+    $obj->load('bad.csv');
+    $logger->has_level('warn', 'bad file: a warning');
+
+=head2 Look at the messages yourself
+
+    foreach my $entry (@{ $logger->messages() }) {
+        print "$entry->{level}: $entry->{message}\n";
+    }
+
+    # Structured fields, from a call such as
+    # $logger->info('user logged in', { user => 'alice' })
+    is($logger->messages()->[0]->{fields}->{user}, 'alice', 'user field');
+
+=head2 Control what is printed while the test runs
+
+    # Print nothing (the messages are still captured)
+    my $quiet = Test::Log::Abstraction->new(diag => 'none');
+
+    # Print everything
+    my $loud = Test::Log::Abstraction->new(verbose => 1);
+
+    # Print only errors and more serious messages
+    my $errors = Test::Log::Abstraction->new(diag => 'error');
+
+=head2 Test code that checks the log level
+
+    # The code under test does: if($logger->is_debug()) { ... }
+    my $logger = Test::Log::Abstraction->new(level => 'warning');
+    ok(!$logger->is_debug(), 'debug output is turned off');
+
+=head2 Get this module's own messages in another language
+
+    my $logger = Test::Log::Abstraction->new(lang => 'de');    # German
+    my $french = Test::Log::Abstraction->new(country => 'FR');    # French
 
 =head1 DESCRIPTION
 
-A test double for L<Log::Abstraction>, usable wherever code under test is
-passed a C<< logger => >> object.
+=head2 What this module is
 
-Every level method that L<Log::Abstraction> offers (C<trace>, C<debug>,
-C<info>, C<notice>, C<warn>, C<error>, C<fatal>, C<critical>, C<alert> and
-C<emergency>), plus the syslog spellings C<warning>, C<err>, C<crit>,
-C<emerg>, C<panic> and C<informational>, records the message instead of
-writing it anywhere, and optionally sends it to TAP diagnostics.  Nothing is
-ever written to disk, and no logging backend is loaded.
+Some code writes log messages through a logger object.  In production that
+object is usually a L<Log::Abstraction> logger.  In a test, you give the code
+a C<Test::Log::Abstraction> object instead.
 
-The non-logging parts of the L<Log::Abstraction> API that code under test is
-likely to call - C<level()>, the C<is_E<lt>levelE<gt>()> predicates,
-C<messages()> and C<flush()> - are also implemented, so they are not
-mistaken for unknown log levels.
+This object does not write the messages to a file.  It keeps them in a list
+in memory.  After the code has run, your test can check the list: was a
+message logged, at which level, and what did it say?
 
-=head2 Diagnostics
+It never writes to disk, and it does not load any logging backend.
 
-Messages at C<warning> and above are printed with L<Test::Builder/diag> by
-default, so a test that accidentally triggers a warning is visible; C<trace>,
-C<debug>, C<info> and C<notice> are printed only in verbose mode.  Verbose
-mode is on when C<< verbose => 1 >> is passed to C<new()>, or when
-C<$ENV{TEST_VERBOSE}> (set by C<prove -v>) or C<$ENV{VERBOSE}> is true.
+=head2 Which methods it has
 
-Change it with the C<diag> option: C<'all'> prints everything,
-C<'none'> prints nothing (unless verbose), a level name such as C<'error'>
-prints that level and everything more severe, and an array reference prints
-just those levels.
+=over 4
 
-When an assertion (C<like>, C<unlike>, C<has_level>, C<empty>) fails, the
-captured messages that explain the failure are printed as diagnostics, so
-the reason is visible without re-running the test.
+=item * B<Log levels.>  The level methods of L<Log::Abstraction>:
+C<trace>, C<debug>, C<info>, C<notice>, C<warn>, C<error>, C<fatal>,
+C<critical>, C<alert> and C<emergency>.  It also accepts the syslog names
+C<warning>, C<err>, C<crit>, C<emerg>, C<panic> and C<informational>.
 
-=head2 Language
+=item * B<Other logger methods.>  C<level()>, C<is_debug()> and the other
+C<is_E<lt>levelE<gt>()> methods, C<messages()> and C<flush()>.  Code under
+test may call these, so they work as they do in L<Log::Abstraction>.
 
-The module's own messages (errors, warnings and failure diagnostics) are
-available in English (C<en>), German (C<de>), French (C<fr>) and Simplified
-Chinese (C<zh>).  The language is chosen, in order of precedence, from the
-C<lang> option, the C<country> option (an ISO 3166 two-letter code), the
-C<LC_ALL>, C<LC_MESSAGES> or C<LANG> environment variables when
-C<< lang => 'auto' >>, and finally C<$Test::Log::Abstraction::config{lang}>
-(C<en>).  English is the default, rather than the environment, so that test
-output - and tests that match on it - are the same on every machine.
-Missing translations fall back to English, key by key.  Templates can be
-added or overridden with the C<i18n> option.
+=item * B<Test methods.>  C<like>, C<unlike>, C<has_level> and C<empty>.
+Each one reports one test result, like C<ok()> in L<Test::More>.
 
-=head2 Configuration
+=item * B<Helper methods.>  C<count>, C<clear>, C<verbose> and C<lang>.
 
-Defaults live in the package hash C<%Test::Log::Abstraction::config>, a
-flat hash of the same keys that C<new()> takes, so it can be filled from
-L<Object::Configure> or set directly:
+=back
+
+=head2 Which messages are printed
+
+Every message is always stored.  This section is only about which messages
+are also printed in the test output, as TAP comments (lines that start with
+C<#>).
+
+By default, C<warning> and more serious levels are printed.  So if a test
+causes a warning by accident, you see it.  C<trace>, C<debug>, C<info> and
+C<notice> messages are not printed.
+
+Verbose mode prints every message.  Verbose mode is on when you pass
+C<< verbose => 1 >> to C<new()>.  If you do not pass C<verbose>, it is on
+when the environment variable C<TEST_VERBOSE> is true (C<prove -v> sets
+it), or when C<VERBOSE> is true.
+
+To choose the levels, use the C<diag> option of C<new()>:
+
+=over 4
+
+=item * C<'all'> - print every message.
+
+=item * C<'none'> - print nothing (verbose mode still prints everything).
+
+=item * A level name, such as C<'error'> - print that level and every more
+serious level.
+
+=item * A list, such as C<['info', 'error']> - print only these levels.
+
+=back
+
+When a test method fails, the messages that explain the failure are printed
+under it.  So you can see why it failed without running the test again.
+
+=head2 Levels and how serious they are
+
+Each level has a number.  A lower number means a more serious message.
+These are the syslog numbers.
+
+    0  emergency, emerg, panic
+    1  alert
+    2  critical, crit, fatal
+    3  error, err
+    4  warning, warn
+    5  notice
+    6  info, informational
+    7  debug, trace
+
+=head2 Language of this module's messages
+
+This module has its own messages: error messages, warnings, and the text
+that explains a failed test.  They can be in English (C<en>), German
+(C<de>), French (C<fr>) or Simplified Chinese (C<zh>).
+
+The language is chosen like this.  The first rule that gives an answer is
+used:
+
+=over 4
+
+=item 1. The C<lang> option, for example C<< lang => 'de' >>.
+
+=item 2. The C<country> option, a two-letter country code such as C<'FR'>.
+
+=item 3. Only when C<< lang => 'auto' >>: the environment variables
+C<LC_ALL>, C<LC_MESSAGES> and C<LANG>, in that order.
+
+=item 4. C<$Test::Log::Abstraction::config{lang}>, which is C<'en'>.
+
+=back
+
+The default is English, not the language of your computer.  This is on
+purpose: the test output is then the same on every computer.
+
+If a message has no translation, the English message is used.  You can add
+or change messages with the C<i18n> option of C<new()>.
+
+This only changes this module's own messages.  The messages that your code
+logs are never changed.
+
+=head2 Default settings
+
+The defaults for C<new()> are in the hash
+C<%Test::Log::Abstraction::config>.  It has the same keys as the options of
+C<new()>.  You can change it in a test, or fill it with
+L<Object::Configure>:
 
     $Test::Log::Abstraction::config{'diag'} = 'none';
 
-=head2 Formal model
+A change only affects loggers that are created after it.
 
-The formal specifications below share this state, in Z notation:
+=head2 Moving from t/lib/MyLogger.pm
 
-    [TEXT, NAME]
-    BOOL ::= true | false
-    LANG == { en, de, fr, zh }
-    SEVERITY == 0 .. 7
-
-    severity : NAME ⇸ SEVERITY
-
-    Entry ≙ [ level : NAME; message : TEXT; fields : TEXT ⇸ TEXT ]
-
-    Logger
-      log       : seq Entry
-      verbose   : BOOL
-      threshold : SEVERITY
-      lang      : LANG
-
-C<severity> is the table of known level names: C<emergency>, C<emerg> and
-C<panic> are 0; C<alert> 1; C<critical>, C<crit> and C<fatal> 2;
-C<error> and C<err> 3; C<warning> and C<warn> 4; C<notice> 5; C<info> and
-C<informational> 6; C<debug> and C<trace> 7.
-
-=head2 Migrating from t/lib/MyLogger.pm
-
-Replace, in each test file:
+Many distributions have their own copy of a small test logger in
+F<t/lib/MyLogger.pm>.  To use this module instead, change each test file
+from:
 
     use lib 't/lib';
     use MyLogger;
     ...
     logger => MyLogger->new()
 
-with:
+to:
 
     use Test::Log::Abstraction;
     ...
     logger => Test::Log::Abstraction->new()
 
-and delete F<t/lib/MyLogger.pm>.  Unlike the old MyLogger copies, this
-implementation is identical everywhere, never recurses when a level method is
-called with C<undef> (see F<t/autoload.t>), and records every message so
-tests can assert on it instead of only printing it.
+Then delete F<t/lib/MyLogger.pm>.  This module is the same in every
+distribution.  It does not loop forever when a level method is given
+C<undef> (an old MyLogger bug; see F<t/autoload.t>).  And it keeps every
+message, so your tests can check them.
+
+=head1 COMMON PITFALLS
+
+=over 4
+
+=item * B<The test methods are tests.>  C<like>, C<unlike>, C<has_level>
+and C<empty> each add one test to the TAP output.  If you give a test
+plan (C<< tests => 5 >>), count them.  Or use C<done_testing()>.
+
+=item * B<Messages from earlier steps are still there.>  A logger keeps
+every message until you call C<clear()>.  If one logger is used for
+several steps, C<like> may match a message from an earlier step.
+
+=item * B<A string pattern is a regular expression.>  C<like('a.c')>
+matches C<'abc'>, because C<.> means "any character".  To match the text
+exactly, use C<qr/\Qa.c\E/>.
+
+=item * B<Different names for one level are counted apart.>  C<warn> and
+C<warning> have the same number, but C<count('warn')> and
+C<has_level('warn')> do not see messages logged with C<warning()>.  Check
+the name that the code under test uses.  C<fatal> is stored as C<fatal>,
+but L<Log::Abstraction> stores it as C<error>.
+
+=item * B<C<undef> is not the same as "no value".>
+
+=over 4
+
+=item * An C<undef> argument to a level method becomes the text
+C<undef> in the message.  (L<Log::Abstraction> drops it.)
+
+=item * C<< verbose => undef >> turns verbose mode B<off>.  To use the
+environment variables instead, do not pass C<verbose> at all.
+
+=item * C<< diag => undef >> and C<< level => undef >> use the default
+from C<%config>.
+
+=item * C<count(undef)> counts all messages.  C<level(undef)> returns the
+level number and changes nothing.
+
+=item * C<like(undef)>, C<unlike(undef)> and C<has_level(undef)> stop the
+test with an error.
+
+=back
+
+=item * B<One hash reference, or a hash reference at the end.>
+C<< $logger->info({ a => 1 }) >> logs the text C<{a =E<gt> 1}>.  But
+C<< $logger->info('text', { a => 1 }) >> logs the text C<text> and stores
+C<< { a => 1 } >> in C<fields>.  An empty hash at the end is dropped.
+
+=item * B<Copies are shallow (only one level deep).>
+
+=over 4
+
+=item * When a message has C<fields>, the fields hash is copied.  But a
+hash or array B<inside> the fields is not copied.  If your code changes it
+later, the stored message changes too.
+
+=item * C<messages()> returns a new list, but the entries in it are the
+stored entries.  Do not change them, unless you want to change what was
+captured.
+
+=item * When you clone a logger with C<< $logger->new(%options) >>, each
+option replaces the old option completely.  For example,
+C<< $logger->new(i18n => { de => {...} }) >> replaces the whole C<i18n>
+hash.  The translations in the old hash are not kept.
+
+=back
+
+=item * B<The C<i18n> option is merged message by message.>  You only
+need to give the messages that you want to change.  For each message,
+this module looks in your C<i18n> hash first, and then in its own list.
+So any message that you do not give keeps its normal text.
+
+=item * B<A misspelt method name does not stop the test.>
+C<< $logger->wran('x') >> stores the message under the name C<wran> and
+prints a notice.  The test still passes, unless you check the messages.
+
+=item * B<C<prove -v> prints everything.>  C<prove -v> sets
+C<TEST_VERBOSE>, which turns verbose mode on.  If a test checks what is
+printed, set C<< verbose => 0 >> or C<$ENV{TEST_VERBOSE} = 0>.
+
+=item * B<C<level()> does not hide messages.>  It only changes the answers
+of the C<is_*> methods.  Every message is still stored.
+
+=back
+
+=head1 ENCODING
+
+This module never changes the text that your code logs.  It stores each
+message exactly as it was given.
+
+=over 4
+
+=item * B<Log messages and fields: any text.>  ASCII, other languages and
+emoji are all stored safely.  It does not matter if the text is a Perl
+character string (decoded, for example with C<use utf8> or
+L<Encode/decode>) or a byte string (for example, UTF-8 bytes read from a
+file).
+
+=item * B<Matching with C<like> and C<unlike>.>  The pattern is matched
+against the stored text as it is.  So the pattern and the message must be
+the same kind of string.  A pattern with a character, such as
+C<qr/\x{1F600}/>, does not match the same emoji stored as UTF-8 bytes.
+
+=item * B<Printed messages.>  A Perl character string that has any
+character above ASCII is printed as UTF-8.  A byte string is printed
+unchanged.  Perl cannot always see the difference: a string that was not
+decoded, and has no character above 255 (such as C<"caf\x{e9}">), is
+treated as bytes.  If the output already has an encoding layer (for example, set
+by L<Test2::Plugin::UTF8>), the text is not encoded again.
+
+=item * B<This module's own messages.>  German, French and Chinese messages
+are character strings, and they are printed as UTF-8.  There is one
+problem case: a translated message that includes a logged message that is
+a non-ASCII byte string.  That part of the text is printed wrongly (it is
+encoded twice).  English messages do not have this problem.
+
+=item * B<Options.>  C<lang> and C<country> must be ASCII, in the formats
+given under L</new>.  Level names are ASCII.  Templates in the C<i18n>
+option may contain any characters, but placeholder names must be ASCII
+letters, digits or C<_>.
+
+=item * B<Test names.>  Test names are passed to L<Test::Builder>
+unchanged.
+
+=back
 
 =cut
 
@@ -356,64 +577,90 @@ Readonly::Hash my %LEVEL_SCHEMA => (
 
 =head2 new
 
-Creates a logger.
+Create a new test logger.
 
 =head3 Purpose
 
-Build a test double that captures everything logged to it.
+Make a logger that stores every message it is given, so that your test can
+check the messages later.
 
 =head3 Args
 
-All optional, as a hash or a hash reference:
+All options are optional.  Give them as a list (C<< key => value >>) or as
+one hash reference.
 
 =over 4
 
-=item * C<verbose> - true to print every message.  Defaults to
-C<$ENV{TEST_VERBOSE} || $ENV{VERBOSE}>.
+=item * C<verbose> - true: print every message.  False: use the C<diag>
+rule.  If you do not give it, the value of C<$ENV{TEST_VERBOSE}> or
+C<$ENV{VERBOSE}> is used.
 
-=item * C<diag> - which messages to print: C<'all'>, C<'none'>, a level
-name (that level and more severe), or an array reference of level names.
-Defaults to C<'warning'>.
+=item * C<diag> - which messages to print.  C<'all'>, C<'none'>, a level
+name (print that level and every more serious level), or an array
+reference of level names.  The default is C<'warning'>.
 
-=item * C<level> - the threshold that C<level()> and C<is_E<lt>levelE<gt>()>
-report.  Defaults to C<'trace'>, so all C<is_*> predicates are true and the
-code under test exercises its debug paths.  It does not filter capture.
+=item * C<level> - the level that C<level()> and the C<is_*> methods
+report.  The default is C<'trace'>, so every C<is_*> method returns 1, and
+the code under test runs all its debug code.  This option does not stop
+any message from being stored.
 
-=item * C<lang> - language of this module's own messages, or C<'auto'> to
-read C<LC_ALL>, C<LC_MESSAGES> and C<LANG>.
+=item * C<lang> - the language of this module's own messages: C<'en'>,
+C<'de'>, C<'fr'>, C<'zh'>, a locale name such as C<'de_DE.UTF-8'>, or
+C<'auto'> (read the environment).  Must be 2 or 3 ASCII letters, then
+optionally C<_>, C<.>, C<@> or C<-> and more text.
 
-=item * C<country> - ISO 3166 two-letter country code used to choose the
-language when C<lang> is not given; case-insensitive.
+=item * C<country> - a two-letter country code such as C<'GB'> or
+C<'fr'> (upper or lower case).  Used to choose the language when C<lang>
+is not given.
 
-=item * C<i18n> - C<< { lang => { key => template } } >> to add or override
-message templates (see L</i18n>).
+=item * C<i18n> - your own message texts, as
+C<< { language => { message_key => template } } >>.  See L</i18n>.
 
 =back
 
-Any other options are accepted and ignored, as L<Log::Abstraction/new>
-takes a configuration hash that the double does not need.  An odd-length
-argument list is ignored rather than fatal, for compatibility with the
-MyLogger copies this module replaces.
+Other options are allowed and ignored.  (A L<Log::Abstraction>
+configuration hash can be passed unchanged.)  If you pass an odd number of
+arguments, they are all ignored.  This is for the old MyLogger code, which
+sometimes passed one stray argument.
 
-Called on an existing logger, it makes a clone: the same options, overridden
-by any passed, the current C<verbose> and C<level> settings, and a copy of
-the captured messages, as L<Log::Abstraction/new> does.  It may also be
-called as a function, C<Test::Log::Abstraction::new(%options)>.
+=head3 Three ways to call it
+
+=over 4
+
+=item * C<< Test::Log::Abstraction->new(%options) >> - the usual way.
+
+=item * C<< $logger->new(%options) >> - make a B<clone>: a new logger with
+the same options, the same C<verbose> and C<level> settings, and a copy of
+the stored messages.  The options that you pass replace the old ones.
+
+=item * C<Test::Log::Abstraction::new(%options)> - called as a function.
+This works too.
+
+=back
 
 =head3 Returns
 
-The new logger.
+The new logger object.
 
 =head3 Side Effects
 
-Reads C<%ENV> for verbosity and, with C<< lang => 'auto' >>, the locale.
+Reads C<%ENV> to decide on verbose mode, and, with C<< lang => 'auto' >>,
+to choose the language.  Nothing else changes.  A clone does not change the
+original logger.
 
 =head3 EXAMPLE
 
+    # The usual way
     my $logger = Test::Log::Abstraction->new();
+
+    # Store everything, print nothing
     my $quiet = Test::Log::Abstraction->new(diag => 'none');
+
+    # A hash reference works too; messages in German
     my $german = Test::Log::Abstraction->new({ country => 'DE' });
-    my $clone = $logger->new(diag => 'all');
+
+    # A clone that prints everything; $logger is not changed
+    my $loud = $logger->new(diag => 'all');
 
 =head3 API SPECIFICATION
 
@@ -423,7 +670,7 @@ Reads C<%ENV> for verbosity and, with C<< lang => 'auto' >>, the locale.
         verbose => { type => 'scalar', optional => 1 },
         diag => { type => ['string', 'arrayref'], optional => 1 },
         level => { type => 'string', optional => 1 },
-        lang => { type => 'string', optional => 1 },
+        lang => { type => 'string', optional => 1, matches => qr/\A(?:auto|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*)?)\z/ },
         country => { type => 'string', optional => 1, matches => qr/\A[A-Za-z]{2}\z/ },
         i18n => { type => 'hashref', optional => 1 },
     }
@@ -434,48 +681,27 @@ Reads C<%ENV> for verbosity and, with C<< lang => 'auto' >>, the locale.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    invalid diag level 'X'          X is not a level name       Use a name from the level list
-    diag must be a level name ...   diag is a hash or code ref  Pass a string or an array ref
-    invalid syslog level 'X'        level option is unknown     Use a name from the level list
-    invalid argument: ...           an option has the wrong     Fix the option's type or value
-                                    type or format
+All of these stop the program (C<croak>).
 
-All are fatal (C<croak>).
-
-=head3 FORMAL SPECIFICATION
-
-    New
-      Logger'
-      verbose? : BOOL
-      level? : NAME
-      lang? : LANG
-      ─────────
-      level? ∈ dom severity
-      log' = ⟨⟩
-      verbose' = verbose?
-      threshold' = severity level?
-      lang' = lang?
-
-    Clone
-      ΞLogger
-      Logger'
-      ─────────
-      log' = log
-      verbose' = verbose ∧ threshold' = threshold
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    invalid diag level 'X'          X is not a level name         Use a name from the level table
+    diag must be a level name ...   diag is a hash or code ref    Give a string or an array ref
+    invalid syslog level 'X'        the level option is unknown   Use a name from the level table
+    invalid argument: ...           an option has the wrong type  Fix the option that is named
+                                    or format
 
 =head3 PSEUDOCODE
 
-    if called on an object:
-        options = object's options + overrides
-        build a new logger from options with a copy of the messages
-        copy verbose and level unless overridden
+    if new() was called on a logger object:
+        options = the object's options, replaced by the new options
+        build a logger from the options, with a copy of the messages
+        copy verbose and level from the object, unless new values were given
     else:
-        if called as a function, treat the first argument as an option
-        normalise the arguments to a hash, ignoring an odd list
-        validate the options
-        resolve the language, then the diag rule and the level
+        if new() was called as a function, the first argument is an option
+        turn the arguments into a hash (ignore an odd-length list)
+        check the options
+        choose the language, then the diag rule, then the level
     return the logger
 
 =cut
@@ -670,60 +896,85 @@ sub _diag_rule {
 
 =head2 trace, debug, info, notice, warn, error, fatal, critical, alert, emergency
 
-Record a message at that level.
+Store a message at this level.
 
 =head3 Purpose
 
-Every L<Log::Abstraction> level, and the syslog spellings C<warning>, C<err>,
-C<crit>, C<emerg>, C<panic> and C<informational>, is a method that records
-the call and, subject to the C<diag> setting, prints it.
+These are the methods that the code under test calls to log something.
+There is one method for each L<Log::Abstraction> level, and one for each
+syslog name: C<warning>, C<err>, C<crit>, C<emerg>, C<panic> and
+C<informational>.  Each method stores the message under the name that was
+called, and may print it (see L</Which messages are printed>).
+
+By default:
 
 =over 4
 
-=item * C<trace>, C<debug>, C<info>, C<informational>, C<notice>
-
-Captured; printed only in verbose mode by default.
+=item * C<trace>, C<debug>, C<info>, C<informational>, C<notice> - stored,
+not printed.
 
 =item * C<warn>, C<warning>, C<error>, C<err>, C<critical>, C<crit>,
-C<fatal>, C<alert>, C<emergency>, C<emerg>, C<panic>
-
-Captured and printed by default.
+C<fatal>, C<alert>, C<emergency>, C<emerg>, C<panic> - stored and printed.
 
 =back
 
 =head3 Args
 
-Following L<Log::Abstraction>'s rules: the arguments are concatenated into
-the message and a trailing newline removed; a single array reference is a
-list of message parts; a hash reference at the end of two or more arguments
-is captured, copied, as structured C<fields> (an empty one is dropped).
-Unlike L<Log::Abstraction>, a lone hash reference is rendered as sorted
-C<< {key => value} >> pairs and nested array references as C<[a, b]>, so
-they can be matched, and C<undef> becomes the string C<undef> instead of
-being dropped, so that it is visible.
+Any list of values.  They are turned into one message like this:
+
+=over 4
+
+=item * All the values are joined together, with nothing between them.
+
+=item * One newline at the end is removed.
+
+=item * If the only value is an array reference, its items are the parts
+of the message.
+
+=item * If there are two or more values and the last one is a hash
+reference, that hash is not part of the message.  A copy of it is stored as
+C<fields>.  An empty hash is dropped.
+
+=item * A hash reference in the message is written as
+C<{key =E<gt> value, ...}>, with the keys sorted.  An array reference is
+written as C<[a, b]>.  So you can match their contents.
+
+=item * C<undef> is written as the text C<undef>.  There is no warning.
+
+=item * An object is written as Perl normally writes it.  If the object
+has its own text form (overloaded C<"">), that form is used.
+
+=item * A structure that contains itself is written as C<(cycle)> at the
+point where it repeats.
+
+=back
 
 =head3 Returns
 
-The logger, as L<Log::Abstraction> does, so calls can be chained.
+The logger, as in L<Log::Abstraction>.  So you can chain calls:
+C<< $logger->info('a')->info('b') >>.
 
 =head3 Side Effects
 
-Appends one entry to C<messages()>; may print a diagnostic.  C<$@> and
-C<$!> are preserved, so logging inside an error handler cannot change the
-error being handled.
+Adds one entry to the stored messages.  May print the message.  The
+variables C<$@> and C<$!> are not changed.  So you can log inside an error
+handler without losing the error.
 
 =head3 EXAMPLE
 
     $logger->warn('something looks wrong');
-    $logger->info('started', { pid => $$ });
-    $logger->error({ error => 'cannot open file' });
-    $logger->debug(['part 1, ', 'part 2']);
+    $logger->warn('file ', $name, ' is empty');          # joined: one message
+    $logger->info('started', { pid => $$ });             # message + fields
+    $logger->error({ error => 'cannot open file' });     # hash as the message
+    $logger->debug(['part 1, ', 'part 2']);              # array of parts
 
 =head3 API SPECIFICATION
 
 =head4 Input
 
-    { type => 'arrayref', optional => 1 }    # any list of values
+    {
+        messages => { type => 'arrayref', position => 0, slurp => 1 },
+    }
 
 =head4 Output
 
@@ -731,21 +982,10 @@ error being handled.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    X() must be called on an        called on the class name    Call it on a logger object
-    object, not on the class
-
-=head3 FORMAL SPECIFICATION
-
-    Log
-      ΔLogger
-      name? : NAME
-      text? : TEXT
-      ─────────
-      name? ∈ dom severity
-      log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
-      verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    X() must be called on an        called on the class name,     Call it on a logger object
+    object, not on the class        not on a logger (croak)
 
 =cut
 
@@ -761,13 +1001,13 @@ foreach my $level (keys %SEVERITY) {
 
 =head2 is_trace, is_debug, is_info, is_notice, is_warn, is_error, is_critical, is_alert, is_emergency
 
-Whether a level is enabled.
+Ask if a level is turned on.
 
 =head3 Purpose
 
-Mirror L<Log::Abstraction>'s predicates, so that code which guards an
-expensive log call with C<< if($logger->is_debug()) >> runs that call under
-test.
+Some code only builds a log message if the level is turned on, for
+example C<< if($logger->is_debug()) { ... } >>.  These methods answer that
+question, as L<Log::Abstraction> does.
 
 =head3 Args
 
@@ -775,8 +1015,9 @@ None.
 
 =head3 Returns
 
-1 if the threshold set with C<level> admits that level, else 0.  With the
-default threshold, C<trace>, every predicate is 1.
+1 if the level is turned on, otherwise 0.  A level is turned on when its
+number is the same as, or lower than, the logger's level (see L</level>).
+The default level is C<trace>, so all these methods return 1.
 
 =head3 Side Effects
 
@@ -785,8 +1026,9 @@ None.
 =head3 EXAMPLE
 
     $logger->level('warning');
-    $logger->is_warn();    # 1
-    $logger->is_info();    # 0
+    $logger->is_warn();     # 1
+    $logger->is_error();    # 1 (more serious than warning)
+    $logger->is_info();     # 0 (less serious than warning)
 
 =head3 API SPECIFICATION
 
@@ -800,19 +1042,10 @@ None.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    X() must be called on an        called on the class name    Call it on a logger object
-    object, not on the class
-
-=head3 FORMAL SPECIFICATION
-
-    IsLevel
-      ΞLogger
-      name? : NAME
-      result! : BOOL
-      ─────────
-      result! = true ⇔ threshold ≥ severity name?
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    is_X() must be called on an     called on the class name      Call it on a logger object
+    object, not on the class        (croak)
 
 =cut
 
@@ -949,18 +1182,19 @@ sub _diags {
 
 =head2 AUTOLOAD
 
-Catch calls to methods that do not exist.
+Handle a call to a method that does not exist.
 
 =head3 Purpose
 
-Any other method call - typically a level name that does not exist, such as
-a typo - captures the message under that name and prints a notice that the
-diag setting cannot suppress, instead of dying part way through a test.  A
-typo'd level therefore cannot pass silently.
+Perl calls this when the code under test calls a method that this class
+does not have - usually a misspelt level, such as C<wran>.  Instead of
+stopping the test, the message is stored under the name that was called,
+and a notice is printed.  The notice is always printed, whatever the
+C<diag> setting, so the mistake is not hidden.
 
 =head3 Args
 
-As for a level method.
+The same as a level method.
 
 =head3 Returns
 
@@ -968,18 +1202,21 @@ The logger.
 
 =head3 Side Effects
 
-Records an entry with the called name as its level, and prints
+Adds one entry, with the called name as its level.  Prints
 C<no method 'name'>.
 
 =head3 EXAMPLE
 
-    $logger->wran('oops');    # captured as level 'wran', notice printed
+    $logger->wran('oops');    # stored at level 'wran'; a notice is printed
+    is($logger->count('wran'), 1, 'the misspelt call was stored');
 
 =head3 API SPECIFICATION
 
 =head4 Input
 
-    { type => 'arrayref', optional => 1 }
+    {
+        messages => { type => 'arrayref', position => 0, slurp => 1 },
+    }
 
 =head4 Output
 
@@ -987,21 +1224,12 @@ C<no method 'name'>.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    no method 'X'                   X is not a method or level  Fix the method name
-    X() must be called on an        unknown class method        Call it on a logger object
-    object, not on the class
-
-=head3 FORMAL SPECIFICATION
-
-    Unknown
-      ΔLogger
-      name? : NAME
-      text? : TEXT
-      ─────────
-      name? ∉ dom severity
-      log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    no method 'X'                   X is not a method or a level  Fix the method name
+                                    (notice; the test goes on)
+    X() must be called on an        an unknown method was called  Call it on a logger object
+    object, not on the class        on the class name (croak)
 
 =cut
 
@@ -1019,11 +1247,11 @@ sub DESTROY { }
 
 =head2 messages
 
-The captured messages.
+Get the stored messages.
 
 =head3 Purpose
 
-Let a test inspect everything that was logged.
+Let your test look at everything that was logged.
 
 =head3 Args
 
@@ -1031,10 +1259,22 @@ None.
 
 =head3 Returns
 
-A reference to a new array of C<< { level, message } >> hash references, in
-the order they were logged; entries logged with structured fields also have
-a C<fields> hash reference.  The array is a copy, as in
-L<Log::Abstraction>, so changing it does not change the capture.
+A reference to a new array.  It has one hash reference for each message,
+oldest first.  Each hash has these keys:
+
+=over 4
+
+=item * C<level> - the level name, in lower case, as it was called.
+
+=item * C<message> - the message text.
+
+=item * C<fields> - only when fields were given: a hash reference.
+
+=back
+
+The array is a copy, as in L<Log::Abstraction>.  Adding or removing items
+in it does not change the stored messages.  But the hashes in it are the
+stored hashes (see L</COMMON PITFALLS>).
 
 =head3 Side Effects
 
@@ -1045,6 +1285,9 @@ None.
     foreach my $entry (@{ $logger->messages() }) {
         diag("$entry->{level}: $entry->{message}");
     }
+
+    my $first = $logger->messages()->[0];
+    is($first->{level}, 'warn', 'the first message is a warning');
 
 =head3 API SPECIFICATION
 
@@ -1058,18 +1301,10 @@ None.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    messages() must be called on    called on the class name    Call it on a logger object
-    an object, not on the class
-
-=head3 FORMAL SPECIFICATION
-
-    Messages
-      ΞLogger
-      result! : seq Entry
-      ─────────
-      result! = log
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    messages() must be called on    called on the class name      Call it on a logger object
+    an object, not on the class     (croak)
 
 =cut
 
@@ -1081,11 +1316,11 @@ sub messages {
 
 =head2 clear
 
-Forget the captured messages.
+Delete all stored messages.
 
 =head3 Purpose
 
-Reset between phases of a test.
+Start again with an empty list, for example between two steps of a test.
 
 =head3 Args
 
@@ -1093,14 +1328,16 @@ None.
 
 =head3 Returns
 
-The logger, for chaining.
+The logger, so you can chain calls.
 
 =head3 Side Effects
 
-Empties the capture.
+All stored messages are deleted.  The settings (C<verbose>, C<level>,
+C<diag>, language) do not change.
 
 =head3 EXAMPLE
 
+    $logger->clear();
     $logger->clear()->empty('nothing logged yet');
 
 =head3 API SPECIFICATION
@@ -1115,18 +1352,10 @@ Empties the capture.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    clear() must be called on an    called on the class name    Call it on a logger object
-    object, not on the class
-
-=head3 FORMAL SPECIFICATION
-
-    Clear
-      ΔLogger
-      ─────────
-      log' = ⟨⟩
-      verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    clear() must be called on an    called on the class name      Call it on a logger object
+    object, not on the class        (croak)
 
 =cut
 
@@ -1140,24 +1369,25 @@ sub clear {
 
 =head2 count
 
-How many messages were captured.
+Count the stored messages.
 
 =head3 Purpose
 
-Assert on the volume of logging.
+Check how much was logged, in total or at one level.
 
 =head3 Args
 
 =over 4
 
-=item * C<$level> - optional; count only that level (case-insensitive).
-Aliases are distinct: C<count('warn')> does not count C<warning> calls.
+=item * C<$level> - optional.  Count only messages at this level.  Upper or
+lower case does not matter.  Different names for the same level are counted
+apart: C<count('warn')> does not count C<warning()> calls.
 
 =back
 
 =head3 Returns
 
-The number of matching messages.
+The number of messages: 0 or more.
 
 =head3 Side Effects
 
@@ -1165,14 +1395,16 @@ None.
 
 =head3 EXAMPLE
 
-    is($logger->count(), 3, 'three messages');
-    is($logger->count('error'), 1, 'one error');
+    is($logger->count(), 3, 'three messages in total');
+    is($logger->count('error'), 1, 'one of them is an error');
 
 =head3 API SPECIFICATION
 
 =head4 Input
 
-    { level => { type => 'string', optional => 1 } }
+    {
+        level => { type => 'string', optional => 1, position => 0 },
+    }
 
 =head4 Output
 
@@ -1180,19 +1412,10 @@ None.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    count() must be called on an    called on the class name    Call it on a logger object
-    object, not on the class
-
-=head3 FORMAL SPECIFICATION
-
-    Count
-      ΞLogger
-      level? : NAME
-      result! : ℕ
-      ─────────
-      result! = # (log ↾ { e : Entry | e.level = level? })
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    count() must be called on an    called on the class name      Call it on a logger object
+    object, not on the class        (croak)
 
 =cut
 
@@ -1206,43 +1429,44 @@ sub count {
 
 =head2 like
 
-Assert that a message matches.
+Test that a stored message matches a pattern.
 
 =head3 Purpose
 
-Pass if any captured message matches the pattern.
+The test passes if at least one stored message matches the pattern.
 
 =head3 Args
 
 =over 4
 
-=item * C<$pattern> - a C<qr//> or a string, used as a regular expression.
+=item * C<$pattern> - required.  A C<qr//> regular expression, or a string.
+A string is also used as a regular expression.
 
-=item * C<$name> - optional test name.
+=item * C<$name> - optional.  The name of the test.
 
 =back
 
 =head3 Returns
 
-The test result.
+True if the test passed, false if it failed.
 
 =head3 Side Effects
 
-Reports a test through L<Test::Builder>, so count it in your plan (or use
-C<done_testing()>).  On failure, lists the captured messages as
-diagnostics.
+Adds one test result to the TAP output.  If the test fails, all stored
+messages are printed under it (at most 20, then a count of the others).
 
 =head3 EXAMPLE
 
     $logger->like(qr/updated/, 'the update was logged');
+    $logger->like(qr/^Cannot open/i, 'the open error was logged');
 
 =head3 API SPECIFICATION
 
 =head4 Input
 
     {
-        pattern => { type => ['regex', 'string'] },
-        name => { type => 'string', optional => 1 },
+        pattern => { type => ['regex', 'string'], position => 0 },
+        name => { type => 'string', optional => 1, position => 1 },
     }
 
 =head4 Output
@@ -1251,22 +1475,13 @@ diagnostics.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    like() needs a pattern          no pattern was given        Pass a qr// or a string
-    invalid argument: ...           pattern is not a regex      Pass a qr// or a string
-                                    or a string
-    N messages were captured:       (diagnostic) the test       Compare the listed messages
-                                    failed                      with the pattern
-
-=head3 FORMAL SPECIFICATION
-
-    Like
-      ΞLogger
-      pattern? : ℙ TEXT
-      result! : BOOL
-      ─────────
-      result! = true ⇔ (∃ e : ran log • e.message ∈ pattern?)
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    like() needs a pattern          no pattern was given (croak)  Give a qr// or a string
+    invalid argument: ...           the pattern is not a qr// or  Give a qr// or a string
+                                    a string (croak)
+    N messages were captured:       the test failed; the stored   Compare them with the pattern
+                                    messages follow (output)
 
 =cut
 
@@ -1282,42 +1497,44 @@ sub like {
 
 =head2 unlike
 
-Assert that no message matches.
+Test that no stored message matches a pattern.
 
 =head3 Purpose
 
-Pass if no captured message matches the pattern.
+The test passes if no stored message matches the pattern.  It also passes
+when there are no messages.
 
 =head3 Args
 
 =over 4
 
-=item * C<$pattern> - a C<qr//> or a string, used as a regular expression.
+=item * C<$pattern> - required.  A C<qr//> regular expression, or a string.
+A string is also used as a regular expression.
 
-=item * C<$name> - optional test name.
+=item * C<$name> - optional.  The name of the test.
 
 =back
 
 =head3 Returns
 
-The test result.
+True if the test passed, false if it failed.
 
 =head3 Side Effects
 
-Reports a test through L<Test::Builder>.  On failure, lists the messages
-that matched as diagnostics.
+Adds one test result to the TAP output.  If the test fails, the messages
+that matched are printed under it.
 
 =head3 EXAMPLE
 
-    $logger->unlike(qr/fatal/, 'nothing fatal was logged');
+    $logger->unlike(qr/fatal/i, 'nothing fatal was logged');
 
 =head3 API SPECIFICATION
 
 =head4 Input
 
     {
-        pattern => { type => ['regex', 'string'] },
-        name => { type => 'string', optional => 1 },
+        pattern => { type => ['regex', 'string'], position => 0 },
+        name => { type => 'string', optional => 1, position => 1 },
     }
 
 =head4 Output
@@ -1326,22 +1543,13 @@ that matched as diagnostics.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    unlike() needs a pattern        no pattern was given        Pass a qr// or a string
-    invalid argument: ...           pattern is not a regex      Pass a qr// or a string
-                                    or a string
-    N messages matched:             (diagnostic) the test       Look at the listed messages
-                                    failed
-
-=head3 FORMAL SPECIFICATION
-
-    Unlike
-      ΞLogger
-      pattern? : ℙ TEXT
-      result! : BOOL
-      ─────────
-      result! = true ⇔ (∀ e : ran log • e.message ∉ pattern?)
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    unlike() needs a pattern        no pattern was given (croak)  Give a qr// or a string
+    invalid argument: ...           the pattern is not a qr// or  Give a qr// or a string
+                                    a string (croak)
+    N messages matched:             the test failed; the          Look at the listed messages
+                                    matching messages follow
 
 =cut
 
@@ -1358,31 +1566,32 @@ sub unlike {
 
 =head2 has_level
 
-Assert that a level was logged.
+Test that something was logged at a level.
 
 =head3 Purpose
 
-Pass if at least one message was logged at that level.
+The test passes if at least one message was stored at this level.
 
 =head3 Args
 
 =over 4
 
-=item * C<$level> - level name, case-insensitive.  Aliases are distinct:
-C<has_level('warn')> does not see C<warning> calls.
+=item * C<$level> - required.  The level name.  Upper or lower case does
+not matter.  Different names for the same level are different:
+C<has_level('warn')> does not see C<warning()> calls.
 
-=item * C<$name> - optional test name.
+=item * C<$name> - optional.  The name of the test.
 
 =back
 
 =head3 Returns
 
-The test result.
+True if the test passed, false if it failed.
 
 =head3 Side Effects
 
-Reports a test through L<Test::Builder>.  On failure, lists the captured
-messages as diagnostics.
+Adds one test result to the TAP output.  If the test fails, all stored
+messages are printed under it, so you can see which levels were used.
 
 =head3 EXAMPLE
 
@@ -1393,8 +1602,8 @@ messages as diagnostics.
 =head4 Input
 
     {
-        level => { type => 'string' },
-        name => { type => 'string', optional => 1 },
+        level => { type => 'string', position => 0 },
+        name => { type => 'string', optional => 1, position => 1 },
     }
 
 =head4 Output
@@ -1403,21 +1612,13 @@ messages as diagnostics.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    has_level() needs a level name  no level was given          Pass a level name
-    invalid argument: ...           level is not a string       Pass a level name
-    N messages were captured:       (diagnostic) the test       Look at the listed levels
-                                    failed
-
-=head3 FORMAL SPECIFICATION
-
-    HasLevel
-      ΞLogger
-      level? : NAME
-      result! : BOOL
-      ─────────
-      result! = true ⇔ (∃ e : ran log • e.level = level?)
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    has_level() needs a level name  no level was given (croak)    Give a level name
+    invalid argument: ...           the level is not a string     Give a level name
+                                    (croak)
+    N messages were captured:       the test failed; the stored   Look at the listed levels
+                                    messages follow (output)
 
 =cut
 
@@ -1433,38 +1634,41 @@ sub has_level {
 
 =head2 empty
 
-Assert that nothing was logged.
+Test that nothing was logged.
 
 =head3 Purpose
 
-The usual assertion after a clean run.
+The test passes if there are no stored messages.  Use it to check that a
+normal run logs nothing.
 
 =head3 Args
 
 =over 4
 
-=item * C<$name> - optional test name.
+=item * C<$name> - optional.  The name of the test.
 
 =back
 
 =head3 Returns
 
-The test result.
+True if the test passed, false if it failed.
 
 =head3 Side Effects
 
-Reports a test through L<Test::Builder>.  On failure, lists the captured
-messages as diagnostics.
+Adds one test result to the TAP output.  If the test fails, the stored
+messages are printed under it.
 
 =head3 EXAMPLE
 
-    $logger->empty('nothing was logged');
+    $logger->empty('a normal run logs nothing');
 
 =head3 API SPECIFICATION
 
 =head4 Input
 
-    { name => { type => 'string', optional => 1 } }
+    {
+        name => { type => 'string', optional => 1, position => 0 },
+    }
 
 =head4 Output
 
@@ -1472,18 +1676,10 @@ messages as diagnostics.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    N messages were captured:       (diagnostic) the test       Look at the listed messages
-                                    failed
-
-=head3 FORMAL SPECIFICATION
-
-    Empty
-      ΞLogger
-      result! : BOOL
-      ─────────
-      result! = true ⇔ log = ⟨⟩
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    N messages were captured:       the test failed; the stored   Look at the listed messages
+                                    messages follow (output)
 
 =cut
 
@@ -1570,38 +1766,42 @@ sub _explain {
 
 =head2 verbose
 
-Get or set verbose mode.
+Get or change verbose mode.
 
 =head3 Purpose
 
-Print every message, whatever the C<diag> rule, while debugging a test.
+In verbose mode, every message is printed, whatever the C<diag> rule says.
+This helps when you are finding out why a test fails.
 
 =head3 Args
 
 =over 4
 
-=item * C<$value> - optional; true to turn verbose mode on.
+=item * C<$value> - optional.  True turns verbose mode on, false turns it
+off.  Without an argument, nothing changes.
 
 =back
 
 =head3 Returns
 
-The current setting, 1 or 0, after any change.
+The setting after the call: 1 (on) or 0 (off).
 
 =head3 Side Effects
 
-Changes the setting when given an argument.
+Changes the setting, when you give an argument.
 
 =head3 EXAMPLE
 
-    $logger->verbose(1);
-    my $verbose = $logger->verbose();
+    $logger->verbose(1);           # print everything from now on
+    my $on = $logger->verbose();   # 1
 
 =head3 API SPECIFICATION
 
 =head4 Input
 
-    { value => { type => 'scalar', optional => 1 } }
+    {
+        value => { type => 'scalar', optional => 1, position => 0 },
+    }
 
 =head4 Output
 
@@ -1609,21 +1809,10 @@ Changes the setting when given an argument.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    verbose() must be called on an  called on the class name    Call it on a logger object
-    object, not on the class
-
-=head3 FORMAL SPECIFICATION
-
-    Verbose
-      ΔLogger
-      value? : BOOL
-      result! : BOOL
-      ─────────
-      verbose' = value?
-      result! = verbose'
-      log' = log ∧ threshold' = threshold ∧ lang' = lang
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    verbose() must be called on an  called on the class name      Call it on a logger object
+    object, not on the class        (croak)
 
 =cut
 
@@ -1638,42 +1827,52 @@ sub verbose {
 
 =head2 level
 
-Get or set the level threshold.
+Get or change the logger's level.
 
 =head3 Purpose
 
-Mirror L<Log::Abstraction/level>, for code under test that reads or
-changes it.  The threshold only affects the C<is_E<lt>levelE<gt>()>
-predicates: every message is still captured.
+Code under test may read or change the level, as it can with
+L<Log::Abstraction/level>.  The level only changes the answers of the
+C<is_*> methods.  Every message is still stored.
 
 =head3 Args
 
 =over 4
 
-=item * C<$name> - optional level name, case-insensitive.
+=item * C<$name> - optional.  A level name.  Upper or lower case does not
+matter.
 
 =back
 
 =head3 Returns
 
-Without an argument, the numeric threshold (0 to 7).  With a valid name, the
-logger, for chaining.  With an invalid name, C<undef>, as
-L<Log::Abstraction> does.
+=over 4
+
+=item * No argument: the level's number, from 0 to 7.
+
+=item * A known level name: the logger, so you can chain calls.
+
+=item * An unknown level name: C<undef>, as in L<Log::Abstraction>.
+
+=back
 
 =head3 Side Effects
 
-Changes the threshold; carps on an invalid name.
+With a known name, the level changes.  With an unknown name, nothing
+changes and a warning is printed.
 
 =head3 EXAMPLE
 
     $logger->level('error');
-    print $logger->level();    # 3
+    print $logger->level(), "\n";    # 3
 
 =head3 API SPECIFICATION
 
 =head4 Input
 
-    { name => { type => 'string', optional => 1 } }
+    {
+        name => { type => 'string', optional => 1, position => 0 },
+    }
 
 =head4 Output
 
@@ -1681,20 +1880,10 @@ Changes the threshold; carps on an invalid name.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    invalid syslog level 'X'        X is not a level name       Use a name from the level list
-                                    (warning)
-
-=head3 FORMAL SPECIFICATION
-
-    SetLevel
-      ΔLogger
-      name? : NAME
-      ─────────
-      name? ∈ dom severity ⇒ threshold' = severity name?
-      name? ∉ dom severity ⇒ threshold' = threshold
-      log' = log
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    invalid syslog level 'X'        X is not a level name         Use a name from the level table
+                                    (warning; returns undef)
 
 =cut
 
@@ -1714,12 +1903,13 @@ sub level {
 
 =head2 flush
 
-Does nothing.
+Do nothing.
 
 =head3 Purpose
 
-L<Log::Abstraction/flush> sends held e-mail digests; the double has none,
-but code under test may call it.
+In L<Log::Abstraction>, C<flush()> sends e-mail messages that are waiting.
+The test logger never sends e-mail, but the code under test may still call
+C<flush()>, so it exists.
 
 =head3 Args
 
@@ -1727,7 +1917,7 @@ None.
 
 =head3 Returns
 
-The logger, for chaining.
+The logger, so you can chain calls.
 
 =head3 Side Effects
 
@@ -1751,11 +1941,6 @@ None.
 
 None.
 
-=head3 FORMAL SPECIFICATION
-
-    Flush
-      ΞLogger
-
 =cut
 
 sub flush {
@@ -1766,11 +1951,12 @@ sub flush {
 
 =head2 lang
 
-Which language the logger's own messages are in.
+Get the language of this module's messages.
 
 =head3 Purpose
 
-Let a test check the outcome of the C<lang> and C<country> options.
+Let a test check which language was chosen from the C<lang> and C<country>
+options or the environment.
 
 =head3 Args
 
@@ -1778,7 +1964,7 @@ None.
 
 =head3 Returns
 
-A language tag: C<en>, C<de>, C<fr>, C<zh>, or one supplied with the
+A language code: C<en>, C<de>, C<fr>, C<zh>, or a code that you gave in the
 C<i18n> option.
 
 =head3 Side Effects
@@ -1801,18 +1987,10 @@ None.
 
 =head3 MESSAGES
 
-    Message                         Meaning                     Resolution
-    ------------------------------  --------------------------  -----------------------------
-    lang() must be called on an     called on the class name    Call it on a logger object
-    object, not on the class
-
-=head3 FORMAL SPECIFICATION
-
-    Lang
-      ΞLogger
-      result! : LANG
-      ─────────
-      result! = lang
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    lang() must be called on an     called on the class name      Call it on a logger object
+    object, not on the class        (croak)
 
 =cut
 
@@ -1824,19 +2002,67 @@ sub lang {
 
 =head1 PROTECTED METHODS
 
-Callable from this class and its subclasses only (L<Sub::Protected>);
-subclasses may override them.
+Only this class, and classes that inherit from it, may call these methods
+(L<Sub::Protected> checks this).  A subclass may replace them.
 
 =head2 _emit
 
-    $self->_emit($text);
+Print one line of test output.
 
-Sends one line to TAP diagnostics through L<Test::Builder>, so it works in
-tests that never loaded L<Test::More>.  A string with characters above
-C<0xFF> is UTF-8 encoded first, unless the output handle already has an
-encoding layer, so that a translated message never warns
-C<Wide character in print>.  Returns the logger.  Override it to send
-captured messages somewhere else.
+=head3 Purpose
+
+Every line that this module prints goes through this method.  A subclass
+can replace it to send the lines somewhere else.
+
+=head3 Args
+
+=over 4
+
+=item * C<$text> - the line to print.
+
+=back
+
+=head3 Returns
+
+The logger.
+
+=head3 Side Effects
+
+Prints the line as a TAP comment, with L<Test::Builder/diag>.  This works
+even if the test did not load L<Test::More>.  A Perl character string is
+encoded as UTF-8 first, unless the output already has an encoding layer
+(see L</ENCODING>).
+
+=head3 EXAMPLE
+
+    package My::Logger;
+    use parent -norequire, 'Test::Log::Abstraction';
+
+    # Send the lines to STDERR instead of the TAP output
+    sub _emit {
+        my ($self, $text) = @_;
+        print STDERR "$text\n";
+        return $self;
+    }
+
+=head3 API SPECIFICATION
+
+=head4 Input
+
+    {
+        text => { type => 'string', position => 0 },
+    }
+
+=head4 Output
+
+    { type => 'object', isa => 'Test::Log::Abstraction' }
+
+=head3 MESSAGES
+
+    Message                         Meaning                       What to do
+    ------------------------------  ----------------------------  ------------------------------
+    _emit() is a protected method   called from outside the class Call it from a subclass only
+    ... (croak)                     and its subclasses
 
 =cut
 
@@ -1846,7 +2072,9 @@ sub _emit :Protected {
 	my $tb = Test::Builder->new();
 	my $handle = $tb->in_todo() ? $tb->todo_output() : $tb->failure_output();
 	my $layered = grep { /\A(?:utf8|encoding)/ } PerlIO::get_layers($handle);
-	$text = Encode::encode('UTF-8', $text) if(!$layered && ($text =~ /[^\x00-\xFF]/));
+	# A flagged string is characters, which a raw handle needs as UTF-8;
+	# an unflagged string is already bytes and is printed untouched
+	$text = Encode::encode('UTF-8', $text) if(!$layered && utf8::is_utf8($text));
 	$tb->diag($text);
 
 	return $self;
@@ -1854,41 +2082,65 @@ sub _emit :Protected {
 
 =head2 i18n
 
-Render one of this module's messages in the logger's language.
+Make one of this module's messages, in the logger's language.
 
 =head3 Purpose
 
-The single source of every user-facing string, so that messages can be
-translated and overridden without touching the code.
+All the text that this module shows to people comes from here.  So the
+text can be translated, or changed, without changing the code.
 
 =head3 Args
 
 =over 4
 
-=item * C<$key> - message key, such as C<needs_pattern>.
+=item * C<$key> - the name of the message, such as C<needs_pattern>.
 
-=item * C<\%args> - optional values for the template's placeholders.
-C<class> defaults to the invocant's class.  C<count> selects a plural form
-and C<gender> a gender form, when the template has them.
+=item * C<\%args> - optional.  Values for the placeholders in the message.
+C<class> is filled in for you (the logger's class).  C<count> chooses the
+singular or plural form.  C<gender> chooses a gender form.
 
 =back
 
-A template is a string with C<%{name}s>-style placeholders, where any
-C<sprintf> conversion (C<%{count}d>, C<%{ratio}.2f>) may follow the name,
-and C<%%> is a literal C<%>.  A missing value is rendered as C<undef>,
-without a warning.  Instead of a string, a template may be a hash reference
-keyed by gender (C<male>, C<female>, ...) or by plural category (C<zero>,
-C<one>, C<two>, C<few>, C<many>, C<other>); these nest, and C<other> is the
-fallback.  C<zero> is used for a count of 0 when present, whatever the
-language's rules.
+=head3 How a message template works
 
-The template is looked up in the C<i18n> option, then the built-in
-catalogue, first for the logger's language and then for English; an unknown
-key is returned as it is.
+A template is a string.  C<%{name}s> is replaced by the value called
+C<name>.  After the name you can use any C<sprintf> format letter, for
+example C<%{count}d> or C<%{ratio}.2f>.  C<%%> gives one C<%>.  A value
+that is missing becomes the text C<undef>, with no warning.
+
+A template can also be a hash.  The keys are gender names (such as
+C<male>, C<female>) or plural forms (C<zero>, C<one>, C<two>, C<few>,
+C<many>, C<other>).  The values are templates, so they can be hashes too.
+C<other> is used when nothing else fits.  C<zero> is used for a count of
+0, if it is there.
+
+    {
+        zero  => 'no messages',
+        one   => '%{count}d message',
+        other => '%{count}d messages',
+    }
+
+=head3 Where the template is found
+
+The first one found is used:
+
+=over 4
+
+=item 1. Your C<i18n> option, in the logger's language.
+
+=item 2. This module's messages, in the logger's language.
+
+=item 3. Your C<i18n> option, in English.
+
+=item 4. This module's messages, in English.
+
+=back
+
+If the key is not found anywhere, the key itself is returned.
 
 =head3 Returns
 
-The message, as a character string.
+The finished message, as a Perl character string.
 
 =head3 Side Effects
 
@@ -1896,20 +2148,30 @@ None.
 
 =head3 EXAMPLE
 
+    # Inside a subclass
     my $text = $self->i18n('needs_pattern', { method => 'like' });
     # "Test::Log::Abstraction: like() needs a pattern"
 
-    my $logger = Test::Log::Abstraction->new(i18n => {
-        en => { greeting => { male => 'He logged %{count}d', female => 'She logged %{count}d' } },
+    # Your own message, with gender and plural forms.  i18n() is
+    # protected, so call it from a method of your subclass.
+    my $logger = My::Logger->new(i18n => {
+        en => {
+            logged => {
+                male => { one => 'He logged %{count}d line', other => 'He logged %{count}d lines' },
+                other => 'They logged %{count}d lines',
+            },
+        },
     });
+    # In a method of My::Logger:
+    $self->i18n('logged', { gender => 'male', count => 2 });    # 'He logged 2 lines'
 
 =head3 API SPECIFICATION
 
 =head4 Input
 
     {
-        key => { type => 'string' },
-        args => { type => 'hashref', optional => 1 },
+        key => { type => 'string', position => 0 },
+        args => { type => 'hashref', optional => 1, position => 1 },
     }
 
 =head4 Output
@@ -1918,31 +2180,17 @@ None.
 
 =head3 MESSAGES
 
-None; it never fails.
-
-=head3 FORMAL SPECIFICATION
-
-    [KEY, TEMPLATE]
-    catalogue : LANG ⇸ (KEY ⇸ TEMPLATE)
-
-    I18n
-      ΞLogger
-      key? : KEY
-      result! : TEXT
-      ─────────
-      key? ∈ dom (catalogue lang) ⇒ result! = render (catalogue lang key?)
-      key? ∉ dom (catalogue lang) ∧ key? ∈ dom (catalogue en) ⇒
-          result! = render (catalogue en key?)
-      key? ∉ dom (catalogue lang) ∪ dom (catalogue en) ⇒ result! = key?
+None.  It always returns a string.
 
 =head3 PSEUDOCODE
 
-    language = the logger's, or the configured one for a class
-    template = first of: i18n option[language][key], catalogue[language][key],
-               i18n option[en][key], catalogue[en][key]
-    if there is no template, return the key
-    while the template is a hash: choose by gender, then by plural, then 'other'
-    replace each %{name}conversion with sprintf(conversion, args[name])
+    language = the logger's language (for a class name: the configured one)
+    template = the first one found in the four places listed above
+    if no template was found, return the key
+    while the template is a hash:
+        choose by gender, else by plural form, else 'other'
+    replace each %{name}format with sprintf(format, the value of name)
+    return the text
 
 =cut
 
@@ -2040,7 +2288,8 @@ sub _plural {
 sub _interpolate {
 	my ($template, $args) = @_;
 
-	# Mark a translated template as characters, so _emit() can encode it
+	# Mark a translated template as characters, so _emit() encodes it even
+	# when every character is below 0x100, as in French and German
 	utf8::upgrade($template) if($template =~ /[^\x00-\x7F]/);
 
 	# Only data conversions are allowed: %n and vectors have no place in a
@@ -2090,59 +2339,56 @@ sub _croak {
 
 =over 4
 
-=item * B<More lenient than the real thing.>  The syslog spellings
+=item * B<It accepts more than the real logger.>  The syslog names
 (C<warning>, C<err>, C<crit>, C<emerg>, C<panic>, C<informational>) are
-methods here but not in L<Log::Abstraction> 0.39, so code that calls them
-passes its tests and then dies in production.  They are kept for the
-MyLogger code this module replaces; a C<strict> option that limits the
-double to L<Log::Abstraction>'s real API would be safer.
+methods here, but not in L<Log::Abstraction> 0.39.  Code that calls them
+passes its tests, and then stops with an error in production.  They are
+kept for the old MyLogger code.  A C<strict> option, which allows only the
+real L<Log::Abstraction> methods, would be safer.
 
-=item * B<Aliases are recorded under the name called.>  C<count('warn')>
-and C<has_level('warn')> do not see C<warning> calls, and C<fatal> is
-recorded as C<fatal> where L<Log::Abstraction> records C<error>.  Tests
-must assert on the spelling the code under test uses.
+=item * B<Messages are stored under the name that was called.>  See
+L</COMMON PITFALLS>.  Your test must use the same name as the code under
+test.
 
-=item * B<C<level()> does not filter.>  The threshold only drives the
-C<is_*> predicates; every message is captured whatever it is, which is
-what a test usually wants but is not what L<Log::Abstraction> does.
+=item * B<C<level()> does not hide messages.>  L<Log::Abstraction> drops
+messages below its level.  This module stores them all, which is usually
+what a test wants.
 
-=item * B<Rendering differs on purpose.>  C<undef> becomes C<undef>
-rather than being dropped, and hash and array references are rendered as
-data, so an exact-match assertion written against this double may not hold
-against L<Log::Abstraction> output, and the reverse.
+=item * B<Message text is not always the same as in L<Log::Abstraction>.>
+C<undef> becomes C<undef> instead of being dropped, and hashes and arrays
+are written out as data.  A test that compares the exact text may give a
+different result with the real logger.
 
-=item * B<Mixed encodings in diagnostics.>  A translated (non-English)
-diagnostic that embeds a message logged as undecoded UTF-8 bytes is
-printed double-encoded, because the bytes are taken to be Latin-1 when
-joined to the character-string template.  English output is unaffected.
+=item * B<Mixed encodings in translated output.>  See L</ENCODING>.
 
-=item * B<Encapsulation is not enforced under a harness.>  L<Sub::Private>
-and L<Sub::Protected> skip their checks when C<$ENV{HARNESS_ACTIVE}> is set,
-which is always the case for a module that only runs inside tests.  The
-checks apply under a plain C<perl t/foo.t>.  Turning the bypass off would
-mean changing their process-wide configuration, which would break other
-modules' white-box tests.
+=item * B<The access checks are off under C<prove>.>  L<Sub::Private> and
+L<Sub::Protected> do not check anything when C<$ENV{HARNESS_ACTIVE}> is
+set, and C<prove> always sets it.  They do check under a plain
+C<perl t/foo.t>.  Turning this off would change a setting that is shared
+by every module, and that would break the tests of other modules.
 
-=item * B<Dependency weight.>  L<Params::Validate::Strict>,
-L<Sub::Private>, L<Sub::Protected>, L<Readonly> and L<autodie> (with
-L<IPC::System::Simple>) are runtime dependencies of what is otherwise a
-small test helper.  L<Object::Configure> is deliberately not used:
-it loads L<Log::Abstraction> itself, which a test double must not need.
+=item * B<Many modules are needed.>  L<Params::Validate::Strict>,
+L<Sub::Private>, L<Sub::Protected>, L<Readonly>, and L<autodie> (with
+L<IPC::System::Simple>) must be installed, for what is a small test
+helper.  L<Object::Configure> is not used, because it loads
+L<Log::Abstraction>, and a test logger should not need that.
 
-=item * B<Home-grown i18n.>  L<Locale::Maketext> uses positional bracket
-notation and has no gender support, and gettext-based modules need compiled
-catalogues; neither fits a small, named-placeholder table.  The four
-catalogues were written without review by native speakers.
+=item * B<Simple translation system.>  L<Locale::Maketext> uses numbered
+placeholders and has no gender forms.  Modules based on gettext need
+compiled files.  Neither fits a small table with named placeholders, so
+this module has its own.  Native speakers have not yet checked the
+German, French and Chinese texts.
 
-=item * B<Single-process only.>  Messages are kept in memory in the
-logger object; output logged in a child process is not seen by the parent.
+=item * B<One process only.>  Messages are kept in the memory of the
+logger object.  Messages logged in a child process (after C<fork>) are not
+seen by the parent.
 
 =back
 
 =head1 DIAGNOSTICS
 
-See the C<MESSAGES> section of each method.  The messages can be translated
-or overridden; see L</i18n>.
+Each method lists its messages under C<MESSAGES>.  All messages can be
+translated or changed; see L</i18n>.
 
 =head1 SEE ALSO
 
@@ -2151,6 +2397,290 @@ L<Log::Abstraction>, L<Test::Builder>, L<Test::Most>
 =head1 AUTHOR
 
 Nigel Horne, C<< <njh at nigelhorne.com> >>
+
+=encoding utf8
+
+=head1 FORMAL SPECIFICATION
+
+This section describes each method in the Z notation.  You do not need it
+to use the module.  It is here so that the behaviour is exact.
+
+=head2 State
+
+    [TEXT, NAME, KEY, TEMPLATE]
+    BOOL ::= true | false
+    LANG == { en, de, fr, zh }
+    SEVERITY == 0 .. 7
+
+    severity : NAME ⇸ SEVERITY
+    catalogue : LANG ⇸ (KEY ⇸ TEMPLATE)
+
+    Entry ≙ [ level : NAME; message : TEXT; fields : TEXT ⇸ TEXT ]
+
+    Logger
+      log       : seq Entry
+      verbose   : BOOL
+      threshold : SEVERITY
+      lang      : LANG
+
+C<severity> is the level table under L</Levels and how serious they are>.
+C<catalogue> is the built-in message table.  C<ΔLogger> means the method
+may change the state; C<ΞLogger> means it does not.
+
+=head2 new
+
+    New
+      Logger'
+      verbose? : BOOL
+      level? : NAME
+      lang? : LANG
+      ─────────
+      level? ∈ dom severity
+      log' = ⟨⟩
+      verbose' = verbose?
+      threshold' = severity level?
+      lang' = lang?
+
+    Clone
+      ΞLogger
+      clone! : Logger
+      ─────────
+      clone!.log = log
+      clone!.verbose = verbose
+      clone!.threshold = threshold
+      clone!.lang = lang
+
+C<Clone> is C<< $logger->new() >> with no options.  Options that are given
+replace the matching values, as in C<New>.
+
+=head2 trace, debug, info, notice, warn, error, fatal, critical, alert, emergency
+
+    Log
+      ΔLogger
+      name? : NAME
+      text? : TEXT
+      ─────────
+      name? ∈ dom severity
+      log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
+      verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+
+=head2 is_trace, is_debug, is_info, is_notice, is_warn, is_error, is_critical, is_alert, is_emergency
+
+    IsLevel
+      ΞLogger
+      name? : NAME
+      result! : BOOL
+      ─────────
+      name? ∈ dom severity
+      result! = true ⇔ severity name? ≤ threshold
+
+=head2 AUTOLOAD
+
+    Unknown
+      ΔLogger
+      name? : NAME
+      text? : TEXT
+      ─────────
+      name? ∉ dom severity
+      log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
+      verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+
+=head2 messages
+
+    Messages
+      ΞLogger
+      result! : seq Entry
+      ─────────
+      result! = log
+
+=head2 clear
+
+    Clear
+      ΔLogger
+      ─────────
+      log' = ⟨⟩
+      verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+
+=head2 count
+
+    Count
+      ΞLogger
+      level? : NAME
+      result! : ℕ
+      ─────────
+      result! = # (log ↾ { e : Entry | e.level = level? })
+
+    CountAll
+      ΞLogger
+      result! : ℕ
+      ─────────
+      result! = # log
+
+=head2 like
+
+    Like
+      ΞLogger
+      pattern? : ℙ TEXT
+      result! : BOOL
+      ─────────
+      result! = true ⇔ (∃ e : ran log • e.message ∈ pattern?)
+
+=head2 unlike
+
+    Unlike
+      ΞLogger
+      pattern? : ℙ TEXT
+      result! : BOOL
+      ─────────
+      result! = true ⇔ (∀ e : ran log • e.message ∉ pattern?)
+
+=head2 has_level
+
+    HasLevel
+      ΞLogger
+      level? : NAME
+      result! : BOOL
+      ─────────
+      result! = true ⇔ (∃ e : ran log • e.level = level?)
+
+=head2 empty
+
+    Empty
+      ΞLogger
+      result! : BOOL
+      ─────────
+      result! = true ⇔ log = ⟨⟩
+
+=head2 verbose
+
+    SetVerbose
+      ΔLogger
+      value? : BOOL
+      result! : BOOL
+      ─────────
+      verbose' = value?
+      result! = verbose'
+      log' = log ∧ threshold' = threshold ∧ lang' = lang
+
+    GetVerbose
+      ΞLogger
+      result! : BOOL
+      ─────────
+      result! = verbose
+
+=head2 level
+
+    SetLevel
+      ΔLogger
+      name? : NAME
+      ─────────
+      name? ∈ dom severity ⇒ threshold' = severity name?
+      name? ∉ dom severity ⇒ threshold' = threshold
+      log' = log ∧ verbose' = verbose ∧ lang' = lang
+
+    GetLevel
+      ΞLogger
+      result! : SEVERITY
+      ─────────
+      result! = threshold
+
+=head2 flush
+
+    Flush
+      ΞLogger
+
+=head2 lang
+
+    Lang
+      ΞLogger
+      result! : LANG
+      ─────────
+      result! = lang
+
+=head2 i18n
+
+    I18n
+      ΞLogger
+      key? : KEY
+      result! : TEXT
+      ─────────
+      key? ∈ dom (catalogue lang) ⇒ result! = render (catalogue lang key?)
+      key? ∉ dom (catalogue lang) ∧ key? ∈ dom (catalogue en) ⇒
+          result! = render (catalogue en key?)
+      key? ∉ dom (catalogue lang) ∪ dom (catalogue en) ⇒ result! = key?
+
+C<render> fills in the placeholders.  The C<i18n> option is searched
+before C<catalogue> in each language.
+
+=head1 STATE DIAGRAM
+
+A logger has two main states: B<EMPTY> (no stored messages) and
+B<CAPTURING> (one or more stored messages).  Two settings, B<verbose> and
+B<level>, can change in either state; they do not move the logger between
+states.  Methods that only read or test (C<like>, C<count>, C<is_debug>,
+and so on) never change the state.
+
+                  new(%options)
+                  [check options; choose language,
+                   diag rule and level]
+                        |
+                        | invalid option
+                        +----------------------> croak, no logger made
+                        |
+                        v
+    +-----------------------------------------+
+    |                 EMPTY                   |<----------------+
+    |  messages = ()                          |                 |
+    +-----------------------------------------+                 |
+         |                                                      |
+         | trace() ... emergency(), warning() ... panic()       | clear()
+         | [store the message; print it if the diag rule        | [delete all
+         |  or verbose allows; $@ and $! are kept]              |  messages;
+         |                                                      |  return the
+         | wran() or any unknown method (AUTOLOAD)              |  logger]
+         | [store under that name; always print                 |
+         |  "no method 'wran'"]                                 |
+         v                                                      |
+    +-----------------------------------------+                 |
+    |               CAPTURING                 |-----------------+
+    |  messages = (m1, m2, ...)               |
+    +-----------------------------------------+
+         |       ^
+         |       | any level method, or an unknown method
+         +-------+ [store one more message; maybe print it]
+
+    Changes allowed in BOTH states (the state stays the same):
+
+      verbose(1) / verbose(0)   verbose on / off
+                                [from now on: print every message / use
+                                 the diag rule]
+      level('error')            level number = 3
+                                [the is_* answers change; nothing is
+                                 hidden]
+      level('bogus')            no change [warning; returns undef]
+
+    Read-only calls in BOTH states (the state stays the same):
+
+      like, unlike, has_level, empty
+                                [one TAP result; on failure, print the
+                                 messages that explain it]
+      count, messages, lang, is_trace ... is_emergency, flush
+                                [return a value only]
+      like(undef), has_level(undef), a bad argument, or any method
+      called on the class name instead of an object
+                                [croak; no change]
+
+    Copying (the original logger does not change):
+
+      EMPTY     --- $logger->new(%options) ---> a new logger in EMPTY
+      CAPTURING --- $logger->new(%options) ---> a new logger in CAPTURING
+                    [the new logger has copies of the messages, and the
+                     same verbose and level, unless new values are given]
+
+    End:
+
+      EMPTY or CAPTURING --- the last reference goes away ---> destroyed
+                    [DESTROY does nothing; nothing is stored or printed]
 
 =head1 LICENCE AND COPYRIGHT
 
