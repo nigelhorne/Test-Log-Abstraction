@@ -1598,6 +1598,8 @@ a forged `ok` line to the output, or control your terminal.
 
 ## See Also
 
+- [Test Dashboard](https://nigelhorne.github.io/Test-Log-Abstraction/coverage/)
+
 [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction), [Test::Builder](https://metacpan.org/pod/Test%3A%3ABuilder), [Test::Most](https://metacpan.org/pod/Test%3A%3AMost)
 
 ## Author

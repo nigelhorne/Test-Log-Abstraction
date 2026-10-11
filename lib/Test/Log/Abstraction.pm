@@ -2830,6 +2830,12 @@ a forged C<ok> line to the output, or control your terminal.
 
 =head1 SEE ALSO
 
+=over 4
+
+=item * L<Test Dashboard|https://nigelhorne.github.io/Test-Log-Abstraction/coverage/>
+
+=back
+
 L<Log::Abstraction>, L<Test::Builder>, L<Test::Most>
 
 =head1 AUTHOR
