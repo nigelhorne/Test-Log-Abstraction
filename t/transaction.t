@@ -42,9 +42,6 @@ use Capture qw(failing printed);
 
 use Test::Log::Abstraction;
 
-# White-box: the failures are injected into private steps
-$Sub::Private::BYPASS = 1;
-
 Readonly::Scalar my $CLASS => 'Test::Log::Abstraction';
 Readonly::Scalar my $REPEATS => 3;	# runs of each repeated operation
 Readonly::Scalar my $INJECTED => "injected failure\n";

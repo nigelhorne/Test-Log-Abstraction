@@ -24,8 +24,6 @@ use Scalar::Util qw(looks_like_number);
 use Test::Log::Abstraction;
 
 # White-box: the private decisions are called directly
-$Sub::Private::BYPASS = 1;
-$Sub::Protected::BYPASS = 1;
 
 Readonly::Scalar my $CLASS => 'Test::Log::Abstraction';
 Readonly::Scalar my $FILE => __FILE__;

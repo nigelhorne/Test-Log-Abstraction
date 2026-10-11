@@ -1,6 +1,6 @@
 # Generated from Makefile.PL using makefilepl2cpanfile
 
-requires 'perl', '5.014';
+requires 'perl', '5.026';
 
 requires 'autodie';
 requires 'Carp';
@@ -12,8 +12,6 @@ requires 'Params::Get', '0.17';
 requires 'Params::Validate::Strict', '0.41';
 requires 'Readonly';
 requires 'Scalar::Util';
-requires 'Sub::Private', '0.06';
-requires 'Sub::Protected', '0.03';
 requires 'Test::Builder';
 requires 'strict';
 requires 'warnings';

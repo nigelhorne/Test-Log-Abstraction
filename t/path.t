@@ -29,9 +29,6 @@ use Capture qw(failing printed);
 
 use Test::Log::Abstraction;
 
-$Sub::Private::BYPASS = 1;
-$Sub::Protected::BYPASS = 1;
-
 Readonly::Scalar my $CLASS => 'Test::Log::Abstraction';
 Readonly::Scalar my $FILE => __FILE__;
 Readonly::Scalar my $MAX_LISTED => 20;

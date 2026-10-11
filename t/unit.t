@@ -123,10 +123,8 @@ my %ledger = (
 	'lang: must be called on an object' => 'MESSAGES',
 
 	'_emit: logger' => 'Returns',
-	'_emit: is a protected method' => 'MESSAGES',
 	'i18n: string' => 'Returns',
 	'i18n: key when not found' => 'Where the template is found',
-	'i18n: is a protected method' => 'MESSAGES',
 );
 
 # Mark a documented state as proven.  A name that is not in the ledger is
@@ -211,7 +209,7 @@ sub leaves_globals_alone {
 	return;
 }
 
-# A subclass, so that the protected methods can be used as the POD intends
+# A subclass, so that the methods for subclasses can be used as the POD intends
 {
 	package Local::Subclass;
 	our @ISA = ('Test::Log::Abstraction');
@@ -665,15 +663,8 @@ subtest 'i18n: every documented error exists in every language' => sub {
 	}
 };
 
-subtest 'protected methods refuse outside callers' => sub {
-	local $Sub::Protected::config{'harness_bypass'} = 0;
-	local $Sub::Protected::BYPASS = 0;
-	my $logger = logger();
-	throws_ok { $logger->_emit('x') } qr/\A\Q_emit() is a protected method of $CLASS and cannot be called from main at $FILE\E line \d+\.?\n\z/, '_emit';
-	proven('_emit: is a protected method');
-	throws_ok { $logger->i18n('x') } qr/\A\Qi18n() is a protected method of $CLASS and cannot be called from main at $FILE\E line \d+\.?\n\z/, 'i18n';
-	proven('i18n: is a protected method');
-	lives_ok { Local::Subclass->new(diag => 'none')->say('x') } 'a subclass may still call them';
+subtest 'methods for subclasses' => sub {
+	lives_ok { Local::Subclass->new(diag => 'none')->say('x') } 'a subclass may call them';
 };
 
 # ---------------------------------------------------------------------------

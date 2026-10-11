@@ -416,8 +416,6 @@ use Test::Builder;
 use Params::Get;
 use Params::Validate::Strict;
 use Readonly;
-use Sub::Private;
-use Sub::Protected;
 use Encode;
 use autodie ();
 use Test::Mockingbird;

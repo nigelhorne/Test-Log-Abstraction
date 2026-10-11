@@ -26,11 +26,6 @@ use Capture qw(capture_diag);
 
 use Test::Log::Abstraction;
 
-# Private and protected routines are called directly in white-box tests,
-# as both modules' documentation recommends
-$Sub::Private::BYPASS = 1;
-$Sub::Protected::BYPASS = 1;
-
 # Loggers below are made with verbose => 0, so that prove -v does not change
 # what they print; this records whether to show the extra diagnostics
 Readonly::Scalar my $SHOW_STATE => $ENV{'TEST_VERBOSE'};

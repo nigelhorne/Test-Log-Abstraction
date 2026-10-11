@@ -503,6 +503,11 @@ not printed.
 
 Any list of values.  They are turned into one message like this:
 
+- With no values at all, `warn` and the more serious levels
+(`warning`, `error`, `err`, `critical`, `crit`, `fatal`, `alert`,
+`emergency`, `emerg`, `panic`) store nothing, as in [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction).
+The less serious levels (`trace`, `debug`, `info`, `informational`,
+`notice`) store an empty message, as [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction) does.
 - All the values are joined together, with nothing between them.
 - One newline at the end is removed.
 - If the only value is an array reference, its items are the parts
@@ -526,7 +531,8 @@ The logger, as in [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstracti
 
 #### Side Effects
 
-Adds one entry to the stored messages.  May print the message.  The
+Adds one entry to the stored messages (none for a call with no values at
+`warn` or above; see ["Args"](#args)).  May print the message.  The
 variables `$@` and `$!` are not changed.  So you can log inside an error
 handler without losing the error.
 
@@ -1350,10 +1356,11 @@ lang() must be called on an     not called on a logger        Call it on a logge
 object, not on the class        (croak)
 ```
 
-## Protected Methods
+## Methods for Subclasses
 
-Only this class, and classes that inherit from it, may call these methods
-([Sub::Protected](https://metacpan.org/pod/Sub%3A%3AProtected) checks this).  A subclass may replace them.
+These methods are for this class, and classes that inherit from it.  A
+subclass may call them, or replace them.  Nothing stops other code calling
+them, but they are not part of the public interface, and may change.
 
 ### \_Emit
 
@@ -1411,12 +1418,7 @@ sub _emit {
 
 #### Messages
 
-```
-Message                         Meaning                       What to do
-------------------------------  ----------------------------  ------------------------------
-_emit() is a protected method   called from outside the class Call it from a subclass only
-... (croak)                     and its subclasses
-```
+None.  It never fails.
 
 ### i18n
 
@@ -1482,7 +1484,7 @@ my $text = $self->i18n('needs_pattern', { method => 'like' });
 # "Test::Log::Abstraction: like() needs a pattern"
 
 # Your own message, with gender and plural forms.  i18n() is
-# protected, so call it from a method of your subclass.
+# meant for subclasses, so call it from a method of your subclass.
 my $logger = My::Logger->new(i18n => {
     en => {
         logged => {
@@ -1519,15 +1521,7 @@ form (0 uses 'zero' when present); anything else uses 'other'.
 
 #### Messages
 
-It never fails for any key or arguments.  The only error is about who may
-call it:
-
-```
-Message                         Meaning                       What to do
-------------------------------  ----------------------------  ------------------------------
-i18n() is a protected method    called from outside the class Call it from a subclass only
-... (croak)                     and its subclasses
-```
+None.  It never fails, for any key or arguments.
 
 #### Pseudocode
 
@@ -1560,13 +1554,12 @@ what a test wants.
 are written out as data.  A test that compares the exact text may give a
 different result with the real logger.
 - **Mixed encodings in translated output.**  See ["ENCODING"](#encoding).
-- **The access checks are off under `prove`.**  [Sub::Private](https://metacpan.org/pod/Sub%3A%3APrivate) and
-[Sub::Protected](https://metacpan.org/pod/Sub%3A%3AProtected) do not check anything when `$ENV{HARNESS_ACTIVE}` is
-set, and `prove` always sets it.  They do check under a plain
-`perl t/foo.t`.  Turning this off would change a setting that is shared
-by every module, and that would break the tests of other modules.
+- **Internal methods are not locked.**  Methods whose names start
+with `_`, and the subclass methods `_emit` and `i18n`, can be called by
+any code.  Nothing checks the caller: a test helper should not need
+compiled modules to do that.  Do not rely on them outside a subclass.
 - **Many modules are needed.**  [Params::Validate::Strict](https://metacpan.org/pod/Params%3A%3AValidate%3A%3AStrict),
-[Sub::Private](https://metacpan.org/pod/Sub%3A%3APrivate), [Sub::Protected](https://metacpan.org/pod/Sub%3A%3AProtected), [Readonly](https://metacpan.org/pod/Readonly), and [autodie](https://metacpan.org/pod/autodie) (with
+[Params::Get](https://metacpan.org/pod/Params%3A%3AGet), [Readonly](https://metacpan.org/pod/Readonly), and [autodie](https://metacpan.org/pod/autodie) (with
 [IPC::System::Simple](https://metacpan.org/pod/IPC%3A%3ASystem%3A%3ASimple)) must be installed, for what is a small test
 helper.  [Object::Configure](https://metacpan.org/pod/Object%3A%3AConfigure) is not used, because it loads
 [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction), and a test logger should not need that.
@@ -1583,10 +1576,9 @@ module does not limit the time.
 the first message that matches.  `unlike()` that passes, `count()` with
 a level, and `messages()` look at every stored message, so their time
 grows with the number of messages (about 0.1 to 0.25 microseconds a
-message on a typical machine).  A log call costs about 15 microseconds;
-roughly 40% of that is [Sub::Private](https://metacpan.org/pod/Sub%3A%3APrivate) checking who called each internal
-routine.  For tests that log hundreds of thousands of messages, call
-`clear()` between phases.
+message on a typical machine).  A log call costs about 3 microseconds.
+For tests that log hundreds of thousands of messages, call `clear()`
+between phases.
 - **One process only.**  Messages are kept in the memory of the
 logger object.  Messages logged in a child process (after `fork`) are not
 seen by the parent.
@@ -1620,41 +1612,72 @@ to use the module.  It is here so that the behaviour is exact.
 ### State
 
 ```
-[TEXT, NAME, KEY, TEMPLATE]
+[TEXT, NAME, KEY, TEMPLATE, TAG, VALUE]
 BOOL ::= true | false
-LANG == { en, de, fr, zh }
 SEVERITY == 0 .. 7
+BUILTIN == { en, de, fr, zh }
 
 severity : NAME ⇸ SEVERITY
-catalogue : LANG ⇸ (KEY ⇸ TEMPLATE)
+lower : NAME → NAME
+catalogue : TAG ⇸ (KEY ⇸ TEMPLATE)
+render : seq VALUE → TEXT
+─────────
+dom catalogue = BUILTIN
+∀ n : dom severity • lower n = n
 
-Entry ≙ [ level : NAME; message : TEXT; fields : TEXT ⇸ TEXT ]
+Entry ≙ [ level : NAME; message : TEXT; fields : TEXT ⇸ VALUE ]
+
+Rule ::= all | none | levels⟨⟨ℙ NAME⟩⟩ | atleast⟨⟨SEVERITY⟩⟩
 
 Logger
   log       : seq Entry
   verbose   : BOOL
   threshold : SEVERITY
-  lang      : LANG
+  lang      : TAG
+  overrides : TAG ⇸ (KEY ⇸ TEMPLATE)
+  rule      : Rule
+  ─────────
+  lang ∈ BUILTIN ∪ dom overrides
+  ∀ e : ran log • e.level = lower e.level
+
+ΔLogger ≙ [ Logger; Logger' | overrides' = overrides ∧ rule' = rule ]
+
+printed : Logger × NAME → BOOL
+─────────
+∀ L : Logger; n : NAME •
+  printed (L, n) = true ⇔
+    L.verbose = true ∨ L.rule = all
+    ∨ (∃ S : ℙ NAME • L.rule = levels S ∧ n ∈ S)
+    ∨ (∃ t : SEVERITY • L.rule = atleast t ∧ n ∈ dom severity ∧ severity n ≤ t)
 ```
 
 `severity` is the level table under ["Levels and how serious they are"](#levels-and-how-serious-they-are).
-`catalogue` is the built-in message table.  `ΔLogger` means the method
-may change the state; `ΞLogger` means it does not.
+`lower` is Perl's `lc`.  `catalogue` is the built-in message table, and
+`overrides` is the logger's `i18n` option; so a logger's language may be
+one that only `overrides` has.  `render` turns a log call's arguments
+into its message text (see the level methods' ["Args"](#args)).  `rule` is the
+`diag` option, and `printed` says whether a stored message is also
+printed.  `ΔLogger` means the method may change the log and the settings,
+but never `overrides` or `rule`; `ΞLogger` means it changes nothing.
 
 ### New
 
 ```
 New
   Logger'
-  verbose? : BOOL
-  level? : NAME
-  lang? : LANG
+  opts? : NAME ⇸ VALUE
+  config : NAME ⇸ VALUE
+  env : NAME ⇸ TEXT
   ─────────
-  level? ∈ dom severity
-  log' = ⟨⟩
-  verbose' = verbose?
-  threshold' = severity level?
-  lang' = lang?
+  let get ≙ λ k : NAME • (if k ∈ dom opts? then opts? k else config k) •
+    lower (get level) ∈ dom severity
+    log' = ⟨⟩
+    verbose' = (if verbose ∈ dom opts? then opts? verbose
+                else env TEST_VERBOSE ∨ env VERBOSE)
+    threshold' = severity (lower (get level))
+    overrides' = (if i18n ∈ dom opts? then opts? i18n else ∅)
+    rule' = rule_of (get diag)
+    lang' = language (opts?, config, env, overrides')
 
 Clone
   ΞLogger
@@ -1666,6 +1689,14 @@ Clone
   clone!.lang = lang
 ```
 
+`config` is ["Default settings"](#default-settings) and `env` is `%ENV`.  `rule_of`
+turns the `diag` option into a `Rule`, and fails (croaks) for anything
+else.  `language` applies the order under ["Language of this module's
+messages"](#language-of-this-module-s-messages): `lang`, then `country`, then (for `lang => 'auto'`) the
+locale variables in `env`, then `config`; the result is the first two or
+three letters, if `BUILTIN` or `overrides'` has that language, and
+otherwise `en`.
+
 `Clone` is `$logger->new()` with no options.  Options that are given
 replace the matching values, as in `New`.
 
@@ -1675,12 +1706,16 @@ replace the matching values, as in `New`.
 Log
   ΔLogger
   name? : NAME
-  text? : TEXT
+  args? : seq VALUE
   ─────────
   name? ∈ dom severity
-  log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
+  args? = ⟨⟩ ∧ severity name? ≤ severity warn ⇒ log' = log
+  ¬ (args? = ⟨⟩ ∧ severity name? ≤ severity warn) ⇒
+      log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ render args? ⟩⟩
   verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
 ```
+
+A stored entry is also printed exactly when `printed (θLogger, name?)`.
 
 ### Is\_Trace, Is\_Debug, Is\_Info, Is\_Notice, Is\_Warn, Is\_Error, Is\_Critical, Is\_Alert, Is\_Emergency
 
@@ -1700,12 +1735,16 @@ IsLevel
 Unknown
   ΔLogger
   name? : NAME
-  text? : TEXT
+  args? : seq VALUE
   ─────────
   name? ∉ dom severity
-  log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
+  log' = log ⁀ ⟨⟨ level ↦ lower name?, message ↦ render args? ⟩⟩
   verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
 ```
+
+The notice `no method 'name?'` is always printed.  A name in another case,
+such as `INFO`, is not a method, so it comes here, and is stored as
+`info`.
 
 ### Messages
 
@@ -1735,7 +1774,7 @@ Count
   level? : NAME
   result! : ℕ
   ─────────
-  result! = # (log ↾ { e : Entry | e.level = level? })
+  result! = # (log ↾ { e : Entry | e.level = lower level? })
 
 CountAll
   ΞLogger
@@ -1774,7 +1813,7 @@ HasLevel
   level? : NAME
   result! : BOOL
   ─────────
-  result! = true ⇔ (∃ e : ran log • e.level = level?)
+  result! = true ⇔ (∃ e : ran log • e.level = lower level?)
 ```
 
 ### Empty
@@ -1849,14 +1888,17 @@ I18n
   key? : KEY
   result! : TEXT
   ─────────
-  key? ∈ dom (catalogue lang) ⇒ result! = render (catalogue lang key?)
-  key? ∉ dom (catalogue lang) ∧ key? ∈ dom (catalogue en) ⇒
-      result! = render (catalogue en key?)
-  key? ∉ dom (catalogue lang) ∪ dom (catalogue en) ⇒ result! = key?
+  let find ≙ λ t : TAG •
+      { m : (TAG ⇸ (KEY ⇸ TEMPLATE)) | m ∈ { overrides, catalogue }
+          ∧ t ∈ dom m ∧ key? ∈ dom (m t) } •
+    find lang ≠ ∅ ⇒ result! = fill (first (find lang) lang key?)
+    find lang = ∅ ∧ find en ≠ ∅ ⇒ result! = fill (first (find en) en key?)
+    find lang = ∅ ∧ find en = ∅ ⇒ result! = key?
 ```
 
-`render` fills in the placeholders.  The `i18n` option is searched
-before `catalogue` in each language.
+`fill` chooses the gender or plural form and fills in the placeholders.
+`first` takes `overrides` before `catalogue` when both have the key: the
+`i18n` option is searched first in each language.
 
 ## State Diagram
 
@@ -1885,9 +1927,11 @@ and so on) never change the state.
      |                                                      |
      | trace() ... emergency(), warning() ... panic()       | clear()
      | [store the message; print it if the diag rule        | [delete all
-     |  or verbose allows; $@ and $! are kept]              |  messages;
-     |                                                      |  return the
-     | wran() or any unknown method (AUTOLOAD)              |  logger]
+     |  or verbose allows; $@ and $! are kept.  With no     |  messages;
+     |  arguments, warn() and above store nothing and stay  |  return the
+     |  in EMPTY (or CAPTURING), as in Log::Abstraction]    |  logger]
+     |                                                      |
+     | wran() or any unknown method (AUTOLOAD)              |
      | [store under that name; always print                 |
      |  "no method 'wran'"]                                 |
      v                                                      |

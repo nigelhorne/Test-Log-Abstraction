@@ -20,8 +20,6 @@ use Test::Log::Abstraction;
 Readonly::Scalar my $CLASS => 'Test::Log::Abstraction';
 Readonly::Scalar my $MESSAGES => 1_000;
 
-$Sub::Private::BYPASS = 1;
-
 # A logger holding $MESSAGES messages, the first of them 'needle'
 sub haystack {
 	my $logger = $CLASS->new(diag => 'none', verbose => 0);

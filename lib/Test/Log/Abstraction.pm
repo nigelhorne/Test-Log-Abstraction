@@ -8,6 +8,38 @@ Test::Log::Abstraction - Capture log output in tests and assert on it
 
 0.002.0
 
+=cut
+
+# Post-release roadmap (from the 0.002.0 gap analysis)
+#
+# Technical debt:
+# TODO: Split this file: move the message catalogues into
+#	Test::Log::Abstraction::I18N and most of the POD into a .pod file, so
+#	translations are easier to contribute and diffs easier to review.
+# TODO: Emit through Test2::API::context() instead of Test::Builder, which
+#	removes the $Test::Builder::Level bookkeeping and the TODO-handle
+#	special cases in _emit().
+# TODO: Add a CI check against the real Log::Abstraction that fails when
+#	it gains a public method this module lacks, or changes behaviour (as
+#	with level methods called with no arguments); t/integration.t checks
+#	only some of this, and only when Log::Abstraction is installed.
+#
+# Features:
+# TODO: Strict mode: at done_testing, fail if error or more serious
+#	messages were logged but no assertion looked at them, as
+#	Test::Warnings's had_no_warnings does for warnings.
+# TODO: Test::Log::Abstraction->install, hooking Log::Abstraction->new so
+#	that code which builds its own logger is still captured.
+# TODO: Richer assertions: fields_like($level, \%fields),
+#	logged_in_order([qr/a/, qr/b/]), count_like(qr//, $n), and
+#	messages_are([...]) with a readable diff on failure.
+# TODO: An optional normalise_levels => 1, so that count('warn') includes
+#	warning() (removes the "different names for one level" pitfall).
+# TODO: Record the file and line each message was logged from, so a test
+#	can check where a message came from.
+# TODO: Adapters for Log::Any, Log::Log4perl and Log::Dispatch, reusing
+#	the same assertion API.
+
 =head1 SYNOPSIS
 
 =head2 Check what your code logged
@@ -372,7 +404,7 @@ unchanged.
 
 =cut
 
-use 5.014;
+use 5.026;
 use strict;
 use warnings;
 use autodie qw(:all);
@@ -386,31 +418,16 @@ use Params::Get qw(get_params);
 use Params::Validate::Strict qw(validate_strict);
 use Readonly;
 use Scalar::Util ();
-use Sub::Private ();
-use Sub::Protected;
 use Test::Builder ();
 
 our $VERSION = '0.002.0';
 our $AUTOLOAD;
 
-# Routines that only this package may call.  Sub::Private's enforce mode is
-# a process-wide setting, so it is localised here: only these names are
-# wrapped, and any other module's choice of mode is left alone.  Wrapping
-# happens at CHECK time (or at the end of this file when it is loaded at run
-# time), by which point every sub named here has been compiled.
-BEGIN {
-	local $Sub::Private::config{'mode'} = 'enforce';
-	Sub::Private->import(qw(
-		_args _assert _at_level _build _clone _croak _diag_rule _diags
-		_copy_tree _entry _explain _format _interpolate _matching _object _plural _reason _regex
-		_record _resolve_lang _template _validate _variant
-	));
-}
-
-# _stringify is deliberately not in that list.  It recurses, and Sub::Private
-# re-enters a wrapped sub with goto from inside its own file, where
-# 'recursion' warnings are on, so logging a structure more than 100 levels
-# deep would warn however this file sets its warnings.
+# Routines whose names start with '_' are internal.  They are not checked
+# at run time: the modules that did that (Sub::Private, Sub::Protected)
+# brought in compiled dependencies that crash on Windows with Perl 5.42,
+# cost about 40% of every log call, and were switched off under prove
+# anyway.  The leading underscore, and the POD, are the contract.
 
 # Defaults for new(); a flat hash so Object::Configure, or a test, can
 # override any of them before loggers are created
@@ -446,6 +463,11 @@ my %SEVERITY = (
 	trace => 7,
 );
 Hash::Util::lock_hash(%SEVERITY);
+
+# Log::Abstraction ignores a call with no arguments at this severity or more
+# serious (warn() to emergency()), but stores an empty message for the less
+# serious levels; a drop-in replacement must count the same
+Readonly::Scalar my $NEEDS_ARGUMENTS => $SEVERITY{'warn'};
 
 # The levels that Log::Abstraction has is_<level>() predicates for
 Readonly::Array my @PREDICATES => qw(trace debug info notice warn error critical alert emergency);
@@ -1120,6 +1142,12 @@ Any list of values.  They are turned into one message like this:
 
 =over 4
 
+=item * With no values at all, C<warn> and the more serious levels
+(C<warning>, C<error>, C<err>, C<critical>, C<crit>, C<fatal>, C<alert>,
+C<emergency>, C<emerg>, C<panic>) store nothing, as in L<Log::Abstraction>.
+The less serious levels (C<trace>, C<debug>, C<info>, C<informational>,
+C<notice>) store an empty message, as L<Log::Abstraction> does.
+
 =item * All the values are joined together, with nothing between them.
 
 =item * One newline at the end is removed.
@@ -1152,7 +1180,8 @@ C<< $logger->info('a')->info('b') >>.
 
 =head3 Side Effects
 
-Adds one entry to the stored messages.  May print the message.  The
+Adds one entry to the stored messages (none for a call with no values at
+C<warn> or above; see L</Args>).  May print the message.  The
 variables C<$@> and C<$!> are not changed.  So you can log inside an error
 handler without losing the error.
 
@@ -1197,10 +1226,11 @@ printed.
 # Generate the level methods.  Each is a thin wrapper over _record, and they
 # exist as real methods so that AUTOLOAD only sees genuinely unknown names
 foreach my $level (keys %SEVERITY) {
+	my $ignore_empty = ($SEVERITY{$level} <= $NEEDS_ARGUMENTS);
 	no strict 'refs';	## no critic (ProhibitNoStrict)
 	*{$level} = sub {
-		my $self = shift;
-		return _object($self, $level)->_record($level, \@_);
+		my $self = _object(shift, $level);
+		return ($ignore_empty && !@_) ? $self : $self->_record($level, \@_);
 	};
 }
 
@@ -2347,10 +2377,11 @@ sub lang {
 	return _object($self, 'lang')->{'lang'};
 }
 
-=head1 PROTECTED METHODS
+=head1 METHODS FOR SUBCLASSES
 
-Only this class, and classes that inherit from it, may call these methods
-(L<Sub::Protected> checks this).  A subclass may replace them.
+These methods are for this class, and classes that inherit from it.  A
+subclass may call them, or replace them.  Nothing stops other code calling
+them, but they are not part of the public interface, and may change.
 
 =head2 _emit
 
@@ -2406,14 +2437,11 @@ encoded as UTF-8 first, unless the output already has an encoding layer
 
 =head3 MESSAGES
 
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    _emit() is a protected method   called from outside the class Call it from a subclass only
-    ... (croak)                     and its subclasses
+None.  It never fails.
 
 =cut
 
-sub _emit :Protected {
+sub _emit {
 	my ($self, $text) = @_;
 
 	# Output can fail (a full disk sets $! to ENOSPC); that must not leak
@@ -2504,7 +2532,7 @@ None.
     # "Test::Log::Abstraction: like() needs a pattern"
 
     # Your own message, with gender and plural forms.  i18n() is
-    # protected, so call it from a method of your subclass.
+    # meant for subclasses, so call it from a method of your subclass.
     my $logger = My::Logger->new(i18n => {
         en => {
             logged => {
@@ -2536,13 +2564,7 @@ form (0 uses 'zero' when present); anything else uses 'other'.
 
 =head3 MESSAGES
 
-It never fails for any key or arguments.  The only error is about who may
-call it:
-
-    Message                         Meaning                       What to do
-    ------------------------------  ----------------------------  ------------------------------
-    i18n() is a protected method    called from outside the class Call it from a subclass only
-    ... (croak)                     and its subclasses
+None.  It never fails, for any key or arguments.
 
 =head3 PSEUDOCODE
 
@@ -2556,7 +2578,7 @@ call it:
 
 =cut
 
-sub i18n :Protected {
+sub i18n {
 	my ($self, $key, $args) = @_;
 
 	# Documented always to return a string: an undefined key renders as '',
@@ -2757,14 +2779,13 @@ different result with the real logger.
 
 =item * B<Mixed encodings in translated output.>  See L</ENCODING>.
 
-=item * B<The access checks are off under C<prove>.>  L<Sub::Private> and
-L<Sub::Protected> do not check anything when C<$ENV{HARNESS_ACTIVE}> is
-set, and C<prove> always sets it.  They do check under a plain
-C<perl t/foo.t>.  Turning this off would change a setting that is shared
-by every module, and that would break the tests of other modules.
+=item * B<Internal methods are not locked.>  Methods whose names start
+with C<_>, and the subclass methods C<_emit> and C<i18n>, can be called by
+any code.  Nothing checks the caller: a test helper should not need
+compiled modules to do that.  Do not rely on them outside a subclass.
 
 =item * B<Many modules are needed.>  L<Params::Validate::Strict>,
-L<Sub::Private>, L<Sub::Protected>, L<Readonly>, and L<autodie> (with
+L<Params::Get>, L<Readonly>, and L<autodie> (with
 L<IPC::System::Simple>) must be installed, for what is a small test
 helper.  L<Object::Configure> is not used, because it loads
 L<Log::Abstraction>, and a test logger should not need that.
@@ -2784,10 +2805,9 @@ module does not limit the time.
 the first message that matches.  C<unlike()> that passes, C<count()> with
 a level, and C<messages()> look at every stored message, so their time
 grows with the number of messages (about 0.1 to 0.25 microseconds a
-message on a typical machine).  A log call costs about 15 microseconds;
-roughly 40% of that is L<Sub::Private> checking who called each internal
-routine.  For tests that log hundreds of thousands of messages, call
-C<clear()> between phases.
+message on a typical machine).  A log call costs about 3 microseconds.
+For tests that log hundreds of thousands of messages, call C<clear()>
+between phases.
 
 =item * B<One process only.>  Messages are kept in the memory of the
 logger object.  Messages logged in a child process (after C<fork>) are not
@@ -2825,39 +2845,70 @@ to use the module.  It is here so that the behaviour is exact.
 
 =head2 State
 
-    [TEXT, NAME, KEY, TEMPLATE]
+    [TEXT, NAME, KEY, TEMPLATE, TAG, VALUE]
     BOOL ::= true | false
-    LANG == { en, de, fr, zh }
     SEVERITY == 0 .. 7
+    BUILTIN == { en, de, fr, zh }
 
     severity : NAME ⇸ SEVERITY
-    catalogue : LANG ⇸ (KEY ⇸ TEMPLATE)
+    lower : NAME → NAME
+    catalogue : TAG ⇸ (KEY ⇸ TEMPLATE)
+    render : seq VALUE → TEXT
+    ─────────
+    dom catalogue = BUILTIN
+    ∀ n : dom severity • lower n = n
 
-    Entry ≙ [ level : NAME; message : TEXT; fields : TEXT ⇸ TEXT ]
+    Entry ≙ [ level : NAME; message : TEXT; fields : TEXT ⇸ VALUE ]
+
+    Rule ::= all | none | levels⟨⟨ℙ NAME⟩⟩ | atleast⟨⟨SEVERITY⟩⟩
 
     Logger
       log       : seq Entry
       verbose   : BOOL
       threshold : SEVERITY
-      lang      : LANG
+      lang      : TAG
+      overrides : TAG ⇸ (KEY ⇸ TEMPLATE)
+      rule      : Rule
+      ─────────
+      lang ∈ BUILTIN ∪ dom overrides
+      ∀ e : ran log • e.level = lower e.level
+
+    ΔLogger ≙ [ Logger; Logger' | overrides' = overrides ∧ rule' = rule ]
+
+    printed : Logger × NAME → BOOL
+    ─────────
+    ∀ L : Logger; n : NAME •
+      printed (L, n) = true ⇔
+        L.verbose = true ∨ L.rule = all
+        ∨ (∃ S : ℙ NAME • L.rule = levels S ∧ n ∈ S)
+        ∨ (∃ t : SEVERITY • L.rule = atleast t ∧ n ∈ dom severity ∧ severity n ≤ t)
 
 C<severity> is the level table under L</Levels and how serious they are>.
-C<catalogue> is the built-in message table.  C<ΔLogger> means the method
-may change the state; C<ΞLogger> means it does not.
+C<lower> is Perl's C<lc>.  C<catalogue> is the built-in message table, and
+C<overrides> is the logger's C<i18n> option; so a logger's language may be
+one that only C<overrides> has.  C<render> turns a log call's arguments
+into its message text (see the level methods' L</Args>).  C<rule> is the
+C<diag> option, and C<printed> says whether a stored message is also
+printed.  C<ΔLogger> means the method may change the log and the settings,
+but never C<overrides> or C<rule>; C<ΞLogger> means it changes nothing.
 
 =head2 new
 
     New
       Logger'
-      verbose? : BOOL
-      level? : NAME
-      lang? : LANG
+      opts? : NAME ⇸ VALUE
+      config : NAME ⇸ VALUE
+      env : NAME ⇸ TEXT
       ─────────
-      level? ∈ dom severity
-      log' = ⟨⟩
-      verbose' = verbose?
-      threshold' = severity level?
-      lang' = lang?
+      let get ≙ λ k : NAME • (if k ∈ dom opts? then opts? k else config k) •
+        lower (get level) ∈ dom severity
+        log' = ⟨⟩
+        verbose' = (if verbose ∈ dom opts? then opts? verbose
+                    else env TEST_VERBOSE ∨ env VERBOSE)
+        threshold' = severity (lower (get level))
+        overrides' = (if i18n ∈ dom opts? then opts? i18n else ∅)
+        rule' = rule_of (get diag)
+        lang' = language (opts?, config, env, overrides')
 
     Clone
       ΞLogger
@@ -2868,6 +2919,14 @@ may change the state; C<ΞLogger> means it does not.
       clone!.threshold = threshold
       clone!.lang = lang
 
+C<config> is L</Default settings> and C<env> is C<%ENV>.  C<rule_of>
+turns the C<diag> option into a C<Rule>, and fails (croaks) for anything
+else.  C<language> applies the order under L</Language of this module's
+messages>: C<lang>, then C<country>, then (for C<lang =E<gt> 'auto'>) the
+locale variables in C<env>, then C<config>; the result is the first two or
+three letters, if C<BUILTIN> or C<overrides'> has that language, and
+otherwise C<en>.
+
 C<Clone> is C<< $logger->new() >> with no options.  Options that are given
 replace the matching values, as in C<New>.
 
@@ -2876,11 +2935,15 @@ replace the matching values, as in C<New>.
     Log
       ΔLogger
       name? : NAME
-      text? : TEXT
+      args? : seq VALUE
       ─────────
       name? ∈ dom severity
-      log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
+      args? = ⟨⟩ ∧ severity name? ≤ severity warn ⇒ log' = log
+      ¬ (args? = ⟨⟩ ∧ severity name? ≤ severity warn) ⇒
+          log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ render args? ⟩⟩
       verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+
+A stored entry is also printed exactly when C<printed (θLogger, name?)>.
 
 =head2 is_trace, is_debug, is_info, is_notice, is_warn, is_error, is_critical, is_alert, is_emergency
 
@@ -2897,11 +2960,15 @@ replace the matching values, as in C<New>.
     Unknown
       ΔLogger
       name? : NAME
-      text? : TEXT
+      args? : seq VALUE
       ─────────
       name? ∉ dom severity
-      log' = log ⁀ ⟨⟨ level ↦ name?, message ↦ text? ⟩⟩
+      log' = log ⁀ ⟨⟨ level ↦ lower name?, message ↦ render args? ⟩⟩
       verbose' = verbose ∧ threshold' = threshold ∧ lang' = lang
+
+The notice C<no method 'name?'> is always printed.  A name in another case,
+such as C<INFO>, is not a method, so it comes here, and is stored as
+C<info>.
 
 =head2 messages
 
@@ -2926,7 +2993,7 @@ replace the matching values, as in C<New>.
       level? : NAME
       result! : ℕ
       ─────────
-      result! = # (log ↾ { e : Entry | e.level = level? })
+      result! = # (log ↾ { e : Entry | e.level = lower level? })
 
     CountAll
       ΞLogger
@@ -2959,7 +3026,7 @@ replace the matching values, as in C<New>.
       level? : NAME
       result! : BOOL
       ─────────
-      result! = true ⇔ (∃ e : ran log • e.level = level?)
+      result! = true ⇔ (∃ e : ran log • e.level = lower level?)
 
 =head2 empty
 
@@ -3022,13 +3089,16 @@ replace the matching values, as in C<New>.
       key? : KEY
       result! : TEXT
       ─────────
-      key? ∈ dom (catalogue lang) ⇒ result! = render (catalogue lang key?)
-      key? ∉ dom (catalogue lang) ∧ key? ∈ dom (catalogue en) ⇒
-          result! = render (catalogue en key?)
-      key? ∉ dom (catalogue lang) ∪ dom (catalogue en) ⇒ result! = key?
+      let find ≙ λ t : TAG •
+          { m : (TAG ⇸ (KEY ⇸ TEMPLATE)) | m ∈ { overrides, catalogue }
+              ∧ t ∈ dom m ∧ key? ∈ dom (m t) } •
+        find lang ≠ ∅ ⇒ result! = fill (first (find lang) lang key?)
+        find lang = ∅ ∧ find en ≠ ∅ ⇒ result! = fill (first (find en) en key?)
+        find lang = ∅ ∧ find en = ∅ ⇒ result! = key?
 
-C<render> fills in the placeholders.  The C<i18n> option is searched
-before C<catalogue> in each language.
+C<fill> chooses the gender or plural form and fills in the placeholders.
+C<first> takes C<overrides> before C<catalogue> when both have the key: the
+C<i18n> option is searched first in each language.
 
 =head1 STATE DIAGRAM
 
@@ -3056,9 +3126,11 @@ and so on) never change the state.
          |                                                      |
          | trace() ... emergency(), warning() ... panic()       | clear()
          | [store the message; print it if the diag rule        | [delete all
-         |  or verbose allows; $@ and $! are kept]              |  messages;
-         |                                                      |  return the
-         | wran() or any unknown method (AUTOLOAD)              |  logger]
+         |  or verbose allows; $@ and $! are kept.  With no     |  messages;
+         |  arguments, warn() and above store nothing and stay  |  return the
+         |  in EMPTY (or CAPTURING), as in Log::Abstraction]    |  logger]
+         |                                                      |
+         | wran() or any unknown method (AUTOLOAD)              |
          | [store under that name; always print                 |
          |  "no method 'wran'"]                                 |
          v                                                      |

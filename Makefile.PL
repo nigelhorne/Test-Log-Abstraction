@@ -17,7 +17,7 @@ WriteMakefile(
 	ABSTRACT_FROM => 'lib/Test/Log/Abstraction.pm',
 	AUTHOR => 'Nigel Horne <njh@nigelhorne.com>',
 	LICENSE => 'GPL',
-	MIN_PERL_VERSION => '5.014',	# Sub::Private and Sub::Protected need 5.14
+	MIN_PERL_VERSION => '5.026',	# Params::Validate::Strict needs 5.26
 	PREREQ_PM => {
 		'autodie' => 0,
 		'Carp' => 0,
@@ -29,8 +29,6 @@ WriteMakefile(
 		'Params::Validate::Strict' => 0.41,	# union types
 		'Readonly' => 0,
 		'Scalar::Util' => 0,
-		'Sub::Private' => 0.06,	# localisable enforce mode
-		'Sub::Protected' => 0.03,
 		'Test::Builder' => 0,
 		'warnings' => 0,
 		'strict' => 0,

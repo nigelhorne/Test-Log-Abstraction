@@ -169,6 +169,28 @@ subtest "State: $EMPTY -> Trigger: level method -> State: $CAPTURING" => sub {
 	is(printed { $logger->trace($MESSAGE) }, "# $MESSAGE\n", 'verbose: printed whatever the diag rule');
 };
 
+subtest "State: $EMPTY -> Trigger: warn() and above, no arguments -> State: $EMPTY" => sub {
+	# As in Log::Abstraction: no arguments at warn or above logs nothing,
+	# while the less serious levels store an empty message.  The levels at
+	# warn or above are exactly those the default diag rule prints.
+	foreach my $method (sort keys %PRINTED_BY_DEFAULT) {
+		my $logger = fresh();
+		my $out = printed { is($logger->$method(), $logger, "$method(): returns the logger") };
+		if($PRINTED_BY_DEFAULT{$method}) {
+			is(state_of($logger), $EMPTY, "$method(): still EMPTY");
+			is($out, '', "$method(): nothing printed");
+		} else {
+			is(state_of($logger), $CAPTURING, "$method(): CAPTURING");
+			is_deeply($logger->messages(), [{ level => $method, message => '' }], "$method(): an empty message");
+		}
+	}
+	# An unknown method is still a mistake worth reporting, with or without
+	# arguments
+	my $logger = fresh(diag => 'none');
+	printed { $logger->$UNKNOWN() };
+	is(state_of($logger), $CAPTURING, 'an unknown method with no arguments is still stored');
+};
+
 subtest "State: $EMPTY -> Trigger: unknown method (AUTOLOAD) -> State: $CAPTURING" => sub {
 	# 'always print', even with nothing else printed
 	my $logger = fresh(diag => 'none');

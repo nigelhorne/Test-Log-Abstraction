@@ -8,10 +8,8 @@ use Encode ();
 use Test::Log::Abstraction;
 use Capture qw(capture_diag);
 
-# White-box tests of the message layer.  i18n() is protected, so the
-# Sub::Protected check is bypassed for this file, as its documentation
-# recommends for tests.
-$Sub::Protected::BYPASS = 1;
+# White-box tests of the message layer.  i18n() is meant for subclasses,
+# and is called directly here.
 
 $ENV{'TEST_VERBOSE'} = 0;
 $ENV{'VERBOSE'} = 0;

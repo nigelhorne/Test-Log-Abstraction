@@ -21,8 +21,6 @@ use Time::HiRes ();
 
 use Test::Log::Abstraction;
 
-$Sub::Private::BYPASS = 1;
-
 Readonly::Scalar my $SEED => 20261010;	# fixed, so every run checks the same strings
 Readonly::Scalar my $SAMPLES => 5_000;
 Readonly::Scalar my $MAX_TOKENS => 12;

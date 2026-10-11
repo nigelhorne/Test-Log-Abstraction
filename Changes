@@ -1,6 +1,20 @@
 Revision history for Test-Log-Abstraction
 
 0.002.0
+	Removed Sub::Private and Sub::Protected.  Through namespace::clean they
+		loaded Variable::Magic, which crashes on exit on Windows with
+		Perl 5.42; they also cost about 40% of each log call and were off
+		under prove.  _emit() and i18n() remain for subclasses, by
+		convention.  The section is now METHODS FOR SUBCLASSES
+	Level methods called with no arguments now match Log::Abstraction:
+		warn() and more serious levels store nothing; trace() to notice()
+		store an empty message
+	The minimum Perl is now 5.26, which Params::Validate::Strict needs; CI
+		now tests 5.26 and 5.30 as well
+	FORMAL SPECIFICATION brought up to date: languages added with the i18n
+		option, the diag rule and what it prints, lower-cased level names,
+		the defaults in new(), and empty log calls
+	Removed the temporary Windows diagnostic from CI
 	Added t/transition.t: every edge of the POD state diagram, and the
 		transitions it does not allow
 	Added t/transaction.t: the lifecycle end to end, and new, cloning, log

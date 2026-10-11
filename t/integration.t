@@ -197,7 +197,7 @@ subtest 'works with any combination of related modules missing' => sub {
 
 subtest 'a missing required module stops loading, with its name' => sub {
 	# Required modules are required: there is no silent fallback
-	foreach my $required (qw(Params::Validate::Strict Sub::Private Readonly)) {
+	foreach my $required (qw(Params::Validate::Strict Params::Get Readonly)) {
 		my $output = run_perl_script("require Test::Log::Abstraction;\nprint qq{loaded\\n};\n", "-MTest::Without::Module=$required");
 		(my $file = $required) =~ s{::}{/}g;
 		like($output, qr/\Q$file.pm\E/, "without $required, loading fails and names it");
@@ -232,6 +232,26 @@ subtest 'same workflow, same record, as the real Log::Abstraction' => sub {
 	state_diag(record => \%record);
 	is_deeply($record{'double'}, $record{'real'}, 'identical messages(), levels and fields');
 	is(scalar(@{$record{'double'}}), 7, 'every step was recorded') or diag(explain($record{'double'}));
+};
+
+# Strategy: call every level both modules share with no arguments, and
+# compare what each stored.  Log::Abstraction ignores warn() and above, but
+# stores an empty message for the less serious levels; code that calls
+# $logger->warn() with nothing must count the same under test.
+subtest 'calls with no arguments are stored as the real Log::Abstraction stores them' => sub {
+	my $have_real = eval { require Log::Abstraction; 1 };
+	plan(skip_all => 'Log::Abstraction is not installed') if(!$have_real);
+
+	my %record;
+	foreach my $which ('real', 'double') {
+		foreach my $level (qw(trace debug info notice warn error fatal critical alert emergency)) {
+			my $logger = ($which eq 'real') ? Log::Abstraction->new(logger => [], level => 'trace') : quiet_logger();
+			$logger->$level();
+			$record{$which}->{$level} = scalar(@{$logger->messages() || []});
+		}
+	}
+	state_diag(record => \%record);
+	is_deeply($record{'double'}, $record{'real'}, 'the same levels store an entry');
 };
 
 subtest 'Object::Configure can supply the settings' => sub {

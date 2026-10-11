@@ -80,21 +80,12 @@ subtest '%config supplies defaults' => sub {
 	is(Test::Log::Abstraction->new()->level(), 3, 'configured level applies');
 };
 
-# Private routines are wrapped by Sub::Private; the harness bypass is turned
-# off here so that the enforcement itself is tested
-subtest 'encapsulation' => sub {
-	local $Sub::Private::config{'harness_bypass'} = 0;
-	local $Sub::Protected::config{'harness_bypass'} = 0;
-	local $Sub::Private::BYPASS = 0;
-	local $Sub::Protected::BYPASS = 0;
-
+# Internal routines are a convention (a leading underscore), not enforced;
+# what matters is that a subclass can use the methods meant for it
+subtest 'subclasses' => sub {
 	my $logger = Test::Log::Abstraction->new(diag => 'none');
-	throws_ok { $logger->_record('warn', ['x']) } qr/private/, '_record is private';
-	throws_ok { Test::Log::Abstraction::_entry('warn', ['x']) } qr/private/, '_entry is private';
-	throws_ok { $logger->i18n('no_method') } qr/protected/, 'i18n is protected';
-	is($logger->count(), 0, 'blocked call recorded nothing');
 
-	# A subclass may use the protected methods
+	# A subclass may use the methods for subclasses
 	{
 		package Local::Subclass;
 		our @ISA = ('Test::Log::Abstraction');
@@ -102,8 +93,7 @@ subtest 'encapsulation' => sub {
 	}
 	like(Local::Subclass->new()->greet(), qr/Local::Subclass: no method 'greet'/, 'subclass can call i18n');
 
-	# Normal use is unaffected by enforcement
-	lives_ok { $logger->warn('fine')->like(qr/fine/, 'public API works under enforcement') } 'public API unaffected';
+	lives_ok { $logger->warn('fine')->like(qr/fine/, 'public API works') } 'public API unaffected';
 };
 
 done_testing();
