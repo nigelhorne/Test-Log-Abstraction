@@ -1,8 +1,11 @@
 Revision history for Test-Log-Abstraction
 
 0.002.1
-	The level names and severities now come from Readonly::Values::Syslog,
+	[ Enhancements ]
+	- The level names and severities now come from Readonly::Values::Syslog,
 		instead of a copy of the same table
+	[ Bug Fixes ]
+	- Bump the mininum version of Log::Abstraction, fixes GitHub#2
 
 0.002.0	Sat Oct 10 09:04:27 PM EDT 2026
 	Level methods called with no arguments now match Log::Abstraction:

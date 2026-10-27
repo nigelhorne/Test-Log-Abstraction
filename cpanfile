@@ -25,6 +25,7 @@ on 'test' => sub {
 	requires 'Exporter';
 	requires 'File::Temp';
 	requires 'JSON::PP';
+	requires 'Log::Abstraction', '0.41';
 	requires 'Test::Builder::Tester';
 	requires 'Test::Memory::Cycle';
 	requires 'Test::Mockingbird', '0.14';
