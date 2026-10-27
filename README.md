@@ -1441,7 +1441,10 @@ singular or plural form.  `gender` chooses a gender form.
 A template is a string.  `%{name}s` is replaced by the value called
 `name`.  After the name you can use any `sprintf` format letter, for
 example `%{count}d` or `%{ratio}.2f`.  `%%` gives one `%`.  A value
-that is missing becomes the text `undef`, with no warning.
+that is missing becomes the text `undef`, with no warning.  A value that
+the format cannot show is written as it was given: text, infinity and NaN
+for any number format, and a number too big for an integer format such as
+`%d` or `%x`, which `sprintf` would turn into `-1`.
 
 A template can also be a hash.  The keys are gender names (such as
 `male`, `female`) or plural forms (`zero`, `one`, `two`, `few`,

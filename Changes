@@ -6,6 +6,10 @@ Revision history for Test-Log-Abstraction
 		instead of a copy of the same table
 	[ Bug Fixes ]
 	- Bump the mininum version of Log::Abstraction, fixes GitHub#2
+	- A number too big for an integer conversion in a message template, such as
+		%{count}d of 1e30, is shown as written instead of as -1; this also
+		fixes t/function.t on perls built with -Duselongdouble, fixes GitHub#1
+		Fixes GitHub#1
 
 0.002.0	Sat Oct 10 09:04:27 PM EDT 2026
 	Level methods called with no arguments now match Log::Abstraction:

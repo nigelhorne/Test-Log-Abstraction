@@ -1185,11 +1185,56 @@ subtest '_emit: hostile text and failing output' => sub {
 };
 
 subtest '_format: values that only look like numbers' => sub {
-	foreach my $odd ('Inf', '-Inf', 'NaN', '1e400', '-1e400') {
+	# 1e99999 is infinite with doubles, long doubles and quadmath alike;
+	# 1e400 is finite with long doubles, so %.2f rightly prints it in full
+	foreach my $odd ('Inf', '-Inf', 'NaN', '1e99999', '-1e99999') {
 		foreach my $conversion (qw(d x .2f)) {
 			is(Test::Log::Abstraction::_format(undef, $conversion, $odd), $odd, "%$conversion of '$odd' shown as written");
 		}
 	}
+};
+
+subtest '_format: numbers too big for an integer conversion' => sub {
+	# Finite on every perl, but sprintf would cut them to -1, ffff... or
+	# the most negative integer
+	foreach my $big ('1e30', '-1e30', '1e400', '-1e400', '9' x 40, '-' . ('9' x 40)) {
+		foreach my $conversion (qw(d i u x o)) {
+			is(Test::Log::Abstraction::_format(undef, $conversion, $big), $big, "%$conversion of '$big' shown as written");
+		}
+	}
+	is(Test::Log::Abstraction::_format(undef, 'd', '18446744073709551615'), '18446744073709551615', '%d of the largest unsigned integer shown as written');
+	is(Test::Log::Abstraction::_format(undef, 'd', '9223372036854775808'), '9223372036854775808', '%d of one more than the largest signed integer shown as written');
+};
+
+subtest '_format: integers at the limits are still formatted' => sub {
+	my %expected = (
+		'd 9223372036854775807' => '9223372036854775807',
+		'd -9223372036854775808' => '-9223372036854775808',
+		'x 9223372036854775807' => '7fffffffffffffff',
+		'u 18446744073709551615' => '18446744073709551615',
+		'x 18446744073709551615' => 'ffffffffffffffff',
+		'u 9223372036854775808' => '9223372036854775808',
+		'x -1' => 'ffffffffffffffff',
+		'd -1' => '-1',
+		'05d 42' => '00042',
+		'x 42' => '2a',
+		'd 3.7' => '3',
+		'd -3.7' => '-3',
+		'.2f 1e30' => sprintf('%.2f', 1e30),
+	);
+	SKIP: {
+		skip('integers are not 64 bits here', scalar(keys %expected)) if(length(sprintf('%x', ~0)) != 16);
+		foreach my $case (sort keys %expected) {
+			my ($conversion, $value) = split(/ /, $case);
+			is(Test::Log::Abstraction::_format(undef, $conversion, $value), $expected{$case}, "%$conversion of '$value'");
+		}
+	}
+};
+
+subtest 'i18n: an enormous count in a template is not turned into -1' => sub {
+	my $self = logger(i18n => { en => { n => { other => '%{count}d items, %{count}x in hex' } } });
+	is($self->i18n('n', { count => 1e30 }), '1e+30 items, 1e+30 in hex', 'a number beyond 64 bits is shown as written');
+	is($self->i18n('n', { count => 255 }), '255 items, ff in hex', 'an ordinary count is formatted');
 };
 
 subtest '_explain: hostile entries' => sub {

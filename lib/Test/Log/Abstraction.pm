@@ -2470,7 +2470,10 @@ singular or plural form.  C<gender> chooses a gender form.
 A template is a string.  C<%{name}s> is replaced by the value called
 C<name>.  After the name you can use any C<sprintf> format letter, for
 example C<%{count}d> or C<%{ratio}.2f>.  C<%%> gives one C<%>.  A value
-that is missing becomes the text C<undef>, with no warning.
+that is missing becomes the text C<undef>, with no warning.  A value that
+the format cannot show is written as it was given: text, infinity and NaN
+for any number format, and a number too big for an integer format such as
+C<%d> or C<%x>, which C<sprintf> would turn into C<-1>.
 
 A template can also be a hash.  The keys are gender names (such as
 C<male>, C<female>) or plural forms (C<zero>, C<one>, C<two>, C<few>,
@@ -2665,7 +2668,8 @@ sub _plural {
 #               character (UTF-8 flagged) string.
 # Side effects: None.  Missing values become 'undef' without warning, and a
 #               non-numeric value for a numeric conversion is rendered as
-#               it is rather than as 0.
+#               it is rather than as 0, as is a number too big for an
+#               integer conversion.
 sub _interpolate {
 	my ($template, $args) = @_;
 
@@ -2714,6 +2718,16 @@ sub _format {
 	return 'undef' if(!defined($value));
 
 	my $numeric = !ref($value) && Scalar::Util::looks_like_number($value) && ($value == $value) && (abs($value) != 9**9**9);
+	# A finite number too big for an integer conversion would be cut to
+	# -1, ffffffffffffffff or the most negative integer, so it is shown as
+	# written unless sprintf reads it as itself.  Checking against Inf alone
+	# is not enough: 1e400 is Inf with doubles, but finite with long doubles.
+	# %d and %i read the value as signed; the others as unsigned, unless it
+	# is negative, which they print in two's complement
+	if($numeric && ($conversion =~ /[diuoxXbc]\z/)) {
+		my $as = (($conversion =~ /[di]\z/) || ($value < 0)) ? '%d' : '%u';
+		$numeric = (sprintf($as, $value) == int($value));
+	}
 	# An object whose overloaded "" dies is shown in plain form, as in
 	# _stringify(), so a message can always be built
 	local $@;
