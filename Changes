@@ -1,6 +1,6 @@
 Revision history for Test-Log-Abstraction
 
-0.002.1
+0.002.1	Tue Oct 27 02:56:03 PM EDT 2026
 	[ Enhancements ]
 	- The level names and severities now come from Readonly::Values::Syslog,
 		instead of a copy of the same table
