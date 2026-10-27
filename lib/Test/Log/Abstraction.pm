@@ -511,7 +511,7 @@ Readonly::Hash my %PLURAL => (
 # locked with Hash::Util, not a Readonly one, whose tie makes each of those
 # reads a method call; i18n() ran about a quarter faster.  Every lookup in it
 # is guarded with exists(), as a locked hash croaks on a missing key.
-Readonly::Hash my %MESSAGES = (
+Readonly::Hash my %MESSAGES => (
 	en => {
 		class_invocant => '%{class}s: %{method}s() must be called on an object, not on the class',
 		invalid_argument => '%{class}s: invalid argument: %{reason}s',
@@ -624,7 +624,7 @@ Readonly::Scalar my $LANG_FORMAT => qr/\A(?:(?i:auto)|[A-Za-z]{2,3}(?:[_.\@-][\w
 
 # Schema for new()'s options.  diag is not listed: _diag_rule() validates it,
 # because its messages say what a valid diag is, which a type error cannot
-Readonly::Hash my %NEW_SCHEMA = (
+Readonly::Hash my %NEW_SCHEMA => (
 	verbose => { type => 'scalar', optional => 1 },
 	level => { type => 'string', optional => 1 },
 	lang => { type => 'string', optional => 1, matches => $LANG_FORMAT },
@@ -633,23 +633,23 @@ Readonly::Hash my %NEW_SCHEMA = (
 );
 
 # Schema shared by like() and unlike()
-Readonly::Hash my %PATTERN_SCHEMA = (
+Readonly::Hash my %PATTERN_SCHEMA => (
 	pattern => { type => ['regex', 'string'] },
 	name => { type => 'string', optional => 1 },
 );
 
 # Schema for count()
-Readonly::Hash my %COUNT_SCHEMA = (
+Readonly::Hash my %COUNT_SCHEMA => (
 	level => { type => 'string', optional => 1 },
 );
 
 # Schema for empty(): only a test name
-Readonly::Hash my %NAME_SCHEMA = (
+Readonly::Hash my %NAME_SCHEMA => (
 	name => { type => 'string', optional => 1 },
 );
 
 # Schema for has_level()
-Readonly::Hash my %LEVEL_SCHEMA = (
+Readonly::Hash my %LEVEL_SCHEMA => (
 	level => { type => 'string' },
 	name => { type => 'string', optional => 1 },
 );
