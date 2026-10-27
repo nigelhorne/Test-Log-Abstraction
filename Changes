@@ -1,5 +1,9 @@
 Revision history for Test-Log-Abstraction
 
+0.002.1
+	The level names and severities now come from Readonly::Values::Syslog,
+		instead of a copy of the same table
+
 0.002.0	Sat Oct 10 09:04:27 PM EDT 2026
 	Level methods called with no arguments now match Log::Abstraction:
 		warn() and more serious levels store nothing; trace() to notice()

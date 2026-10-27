@@ -6,7 +6,7 @@ Test::Log::Abstraction - Capture log output in tests and assert on it
 
 =head1 VERSION
 
-0.002.0
+0.002.1
 
 =cut
 
@@ -417,10 +417,11 @@ use overload ();
 use Params::Get qw(get_params);
 use Params::Validate::Strict qw(validate_strict);
 use Readonly;
+use Readonly::Values::Syslog 0.04 qw(%SYSLOG_LEVELS);
 use Scalar::Util ();
 use Test::Builder ();
 
-our $VERSION = '0.002.0';
+use version; our $VERSION = version->declare('0.002.1');
 our $AUTOLOAD;
 
 # Routines whose names start with '_' are internal.  They are not checked
@@ -439,29 +440,13 @@ our %config = (
 
 # Level -> severity, lower is more severe, following POSIX syslog priorities.
 # trace and debug share a severity, as they do in Log::Abstraction
-# This table is read on every log call.  Readonly 2 makes a read-only hash
-# by tying it, which turns each lookup into a method call; Hash::Util's
-# lock_hash() makes it just as read-only with no tie.  (A locked hash
-# croaks on a lookup of a missing key, so every lookup is guarded by
-# exists(), as it already had to be for Readonly.)
-my %SEVERITY = (
-	emergency => 0,
-	emerg => 0,
-	panic => 0,
-	alert => 1,
-	critical => 2,
-	crit => 2,
-	fatal => 2,
-	error => 3,
-	err => 3,
-	warning => 4,
-	warn => 4,
-	notice => 5,
-	info => 6,
-	informational => 6,
-	debug => 7,
-	trace => 7,
-);
+# The names and numbers come from Readonly::Values::Syslog, so they are not
+# kept in two places.  This table is read on every log call, and that one
+# is a Readonly hash, which is tied, so each lookup would be a method call;
+# a plain copy locked with Hash::Util's lock_hash() is just as read-only
+# with no tie.  (A locked hash croaks on a lookup of a missing key, so every
+# lookup is guarded by exists(), as it already had to be for Readonly.)
+my %SEVERITY = %SYSLOG_LEVELS;
 Hash::Util::lock_hash(%SEVERITY);
 
 # Log::Abstraction ignores a call with no arguments at this severity or more
@@ -2785,8 +2770,8 @@ any code.  Nothing checks the caller: a test helper should not need
 compiled modules to do that.  Do not rely on them outside a subclass.
 
 =item * B<Many modules are needed.>  L<Params::Validate::Strict>,
-L<Params::Get>, L<Readonly>, and L<autodie> (with
-L<IPC::System::Simple>) must be installed, for what is a small test
+L<Params::Get>, L<Readonly>, L<Readonly::Values::Syslog>, and L<autodie>
+(with L<IPC::System::Simple>) must be installed, for what is a small test
 helper.  L<Object::Configure> is not used, because it loads
 L<Log::Abstraction>, and a test logger should not need that.
 

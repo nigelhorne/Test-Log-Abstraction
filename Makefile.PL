@@ -28,12 +28,13 @@ WriteMakefile(
 		'Params::Get' => 0.17,
 		'Params::Validate::Strict' => 0.41,	# union types
 		'Readonly' => 0,
+		'Readonly::Values::Syslog' => 0.04,	# %SYSLOG_LEVELS
 		'Scalar::Util' => 0,
 		'Test::Builder' => 0,
-		'warnings' => 0,
 		'strict' => 0,
-	},
-	TEST_REQUIRES => {
+		'version' => 0,
+		'warnings' => 0,
+	}, TEST_REQUIRES => {
 		'B' => 0,
 		'Cwd' => 0,
 		'Errno' => 0,

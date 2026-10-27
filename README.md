@@ -1559,7 +1559,7 @@ with `_`, and the subclass methods `_emit` and `i18n`, can be called by
 any code.  Nothing checks the caller: a test helper should not need
 compiled modules to do that.  Do not rely on them outside a subclass.
 - **Many modules are needed.**  [Params::Validate::Strict](https://metacpan.org/pod/Params%3A%3AValidate%3A%3AStrict),
-[Params::Get](https://metacpan.org/pod/Params%3A%3AGet), [Readonly](https://metacpan.org/pod/Readonly), and [autodie](https://metacpan.org/pod/autodie) (with
+[Params::Get](https://metacpan.org/pod/Params%3A%3AGet), [Readonly](https://metacpan.org/pod/Readonly), [Readonly::Values::Syslog](https://metacpan.org/pod/Readonly%3A%3AValues%3A%3ASyslog), and [autodie](https://metacpan.org/pod/autodie) (with
 [IPC::System::Simple](https://metacpan.org/pod/IPC%3A%3ASystem%3A%3ASimple)) must be installed, for what is a small test
 helper.  [Object::Configure](https://metacpan.org/pod/Object%3A%3AConfigure) is not used, because it loads
 [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction), and a test logger should not need that.
