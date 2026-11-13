@@ -87,6 +87,15 @@ Revision history for Test-Log-Abstraction
 		as written" is shown as perl writes it, which depends on how
 		perl was built (1e+30, or all 31 digits with long doubles)
 	[ Internal ]
+	- t/logic.t proves the decisions added in this release: truth tables
+		for _is_a(), _repaired(), the read loop of _entry() (all 8 rows of
+		three arguments, each read once), _stringify(), and the claimed-
+		hash rows of _template() and _resolve_lang(); the premises that
+		let _is_a() skip a defined() test and Carp skip the arguments;
+		and, over every code point, that no non-ASCII name lower-cases to
+		a level name (only the Kelvin sign becomes ASCII, as 'k').  The
+		invariant and contradiction tables have rows for the new
+		hostile inputs
 	- level() answers a query (no argument) before making a lookup key,
 		and _plural() returns 'other' and 'zero' without looking them up
 		again; behaviour is unchanged.  t/logic.t proves both reductions
