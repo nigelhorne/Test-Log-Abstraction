@@ -885,7 +885,10 @@ subtest '_assert: reports through Test::Builder at the right level' => sub {
 
 	is_deeply(\@results, [1, 0], 'result of ok() returned');
 	is_deeply($seen[0]->{'args'}, [1, 'passes'], 'value and name given to ok()');
-	is($seen[0]->{'level'}, $outer + 2, 'Level raised by two frames');
+	# One frame, the public assertion's: Test::Builder's $Level is counted
+	# for a call through Test::More::ok(), and _assert calls ok() directly.
+	# The reported line itself is checked end to end in t/integration.t
+	is($seen[0]->{'level'}, $outer + 1, 'Level raised by one frame');
 	is($level_after[0], $outer, 'Level restored afterwards');
 	is($explained_on_pass, 0, 'nothing explained on a pass');
 	is($explained_on_fail, 1, 'failure explained once');

@@ -2278,9 +2278,14 @@ sub _at_level {
 sub _assert {
 	my ($self, $ok, $name, $key, $entries) = @_;
 
-	# Skip this frame and the public assertion's; and keep the caller's
-	# $@ and $!, which reporting may change
-	local $Test::Builder::Level = $Test::Builder::Level + 2;
+	# Report at the line that called the public assertion.  $Level counts
+	# from a call through Test::More::ok(), which is itself one frame; this
+	# calls Test::Builder's ok() directly, so that frame is not there, and
+	# skipping the public assertion's frame is enough.  (+2 skipped one too
+	# many: at the top level of a test file there is nothing above, so it
+	# looked right, but inside a subtest it pointed into Test::Builder.)
+	# Keep the caller's $@ and $!, which reporting may change
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
 	local ($@, $!);
 	my $result = Test::Builder->new()->ok($ok, $name);
 	$self->_explain($key, $entries) if(!$ok);

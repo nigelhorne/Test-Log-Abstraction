@@ -17,7 +17,18 @@ Revision history for Test-Log-Abstraction
 	- t/function.t tests _escape() and _printable(), the bidi escaping in
 		_shown(), and that _record() and _explain() print through
 		_printable() while storing the original
+	- t/unit.t's ledger has the newly documented states: printed messages
+		and levels escaped, the stored message kept, C1 and malformed
+		UTF-8 when printing, bidi controls and the whole value in errors
+	- t/integration.t runs hostile upstream text through the importer:
+		stored as the real Log::Abstraction stores it, printed escaped,
+		and escaped for a subclass that replaces _emit()
 	[ Bug Fixes ]
+	- A failing like(), unlike(), has_level() or empty() inside a subtest
+		was reported at a line inside Test::Builder, not at the line
+		that called it: $Test::Builder::Level was raised by one frame too
+		many.  At the top level of a file it happened to look right.
+		t/integration.t now checks the line at three depths
 	- An invalid argument whose value contains "validate_strict:", such as
 		lang => 'x validate_strict: y', is reported in full: the error
 		was cut at those words, losing the parameter name and most of the
