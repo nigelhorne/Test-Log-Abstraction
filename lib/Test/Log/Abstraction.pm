@@ -1002,8 +1002,17 @@ sub _validate {
 	if(!eval { $valid = validate_strict(schema => $schema, input => $input, unknown_parameter_handler => 'ignore'); 1 }) {
 		# Keep the validator's explanation, but not its file and line,
 		# which point inside Params::Validate::Strict, not at the caller
-		# The validator may nest its own messages; keep only the innermost
-		(my $reason = $@) =~ s/\A.*validate_strict:\s*//s;
+		# The validator may nest its own messages; keep only the innermost.
+		# Its prefix is matched whole: matching 'validate_strict:' alone
+		# would also stop inside the caller's value, which the message
+		# quotes, so lang => 'x validate_strict: y' lost the parameter's
+		# name and most of the value.  Linear: the start is anchored, and
+		# the digits are possessive
+		(my $reason = $@) =~ s{
+			\A .*			# everything up to the last prefix (greedy: the innermost message)
+			Params::Validate::Strict\ line\ \d++:\ validate_strict:
+			\s*+			# and the space after it
+		}{}sx;
 		$self->_croak('invalid_argument', { reason => _reason($reason) });
 	}
 

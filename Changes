@@ -2,6 +2,10 @@ Revision history for Test-Log-Abstraction
 
 0.002.2
 	[ Bug Fixes ]
+	- An invalid argument whose value contains "validate_strict:", such as
+		lang => 'x validate_strict: y', is reported in full: the error
+		was cut at those words, losing the parameter name and most of the
+		value.  Only Params::Validate::Strict's own prefix is removed now
 	- On perls built with -Duselongdouble, an integer placeholder too big
 		for its conversion, such as %{v}d of 1e19, was shown as
 		10000000000000000000 instead of as written (1e+19): the range
