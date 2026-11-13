@@ -1,0 +1,471 @@
+{
+   "runs" : [
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583956.42998,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "-e",
+         "start" : 1794583930.39783,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583930.489,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "-e",
+         "start" : 1794583930.48888,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583930.6965,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/00-load.t",
+         "start" : 1794583930.66946,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583931.0112,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/api.t",
+         "start" : 1794583930.98702,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583931.30233,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/assert.t",
+         "start" : 1794583931.28772,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583931.60219,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/autoload.t",
+         "start" : 1794583931.59461,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583931.90515,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/basic.t",
+         "start" : 1794583931.86631,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583935.02709,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/data-flow.t",
+         "start" : 1794583932.21344,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583935.4106,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/diag.t",
+         "start" : 1794583935.3981,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583936.14532,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/domain.t",
+         "start" : 1794583935.72718,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583945.48083,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/edge_cases.t",
+         "start" : 1794583936.55077,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : null,
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583939.65627,
+         "name" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/T_8mLg75OQ/child.pl",
+         "start" : 1794583939.54831,
+         "version" : "unknown"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583947.54162,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/function.t",
+         "start" : 1794583946.29703,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583948.09407,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/i18n.t",
+         "start" : 1794583948.07208,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583951.56406,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/integration.t",
+         "start" : 1794583948.42868,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583948.57217,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/bhChikLUq6/child.pl",
+         "start" : 1794583948.57092,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583948.82403,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/Ekd7U1o5Mc/child.pl",
+         "start" : 1794583948.82277,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583949.08001,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/lDDZUQZQEY/child.pl",
+         "start" : 1794583949.07872,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583949.33915,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/6a_YHEWMmh/child.pl",
+         "start" : 1794583949.3378,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583949.60189,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/_YZzE8WuRj/child.pl",
+         "start" : 1794583949.60055,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583949.86362,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/bEdH12ftBL/child.pl",
+         "start" : 1794583949.86221,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583950.12668,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/w_WN_mb3xc/child.pl",
+         "start" : 1794583950.12536,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583950.39099,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/Ef_Xg8E4Yk/child.pl",
+         "start" : 1794583950.3897,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583950.61244,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/rBiu03MBYi/child.pl",
+         "start" : 1794583950.59693,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583950.74132,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/dizKX5c9rl/child.pl",
+         "start" : 1794583950.72856,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583950.86994,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/yziezTj1GW/child.pl",
+         "start" : 1794583950.85572,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583951.00525,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "/tmp/NeZ49vR4zk/child.pl",
+         "start" : 1794583950.98607,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583951.95628,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/locales.t",
+         "start" : 1794583951.92144,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583952.89029,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/logic.t",
+         "start" : 1794583952.25933,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583953.38943,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/path.t",
+         "start" : 1794583953.29276,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583953.84041,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/performance.t",
+         "start" : 1794583953.77113,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583954.42622,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/regex.t",
+         "start" : 1794583954.13188,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583954.74195,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/render.t",
+         "start" : 1794583954.73259,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583955.16372,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/transaction.t",
+         "start" : 1794583955.04602,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583955.69565,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/transition.t",
+         "start" : 1794583955.51424,
+         "version" : "0.002.1"
+      },
+      {
+         "OS" : "linux",
+         "abstract" : "Capture log output in tests and assert on it",
+         "dir" : "/home/runner/work/Test-Log-Abstraction/Test-Log-Abstraction",
+         "finish" : 1794583956.22214,
+         "name" : "Test-Log-Abstraction",
+         "perl" : "5.40.5",
+         "run" : "t/unit.t",
+         "start" : 1794583956.03929,
+         "version" : "0.002.1"
+      }
+   ],
+   "summary" : {
+      "/tmp/T_8mLg75OQ/child.pl" : {},
+      "/tmp/bhChikLUq6/child.pl" : {},
+      "/tmp/rBiu03MBYi/child.pl" : {},
+      "Total" : {
+         "branch" : {
+            "covered" : 220,
+            "error" : 0,
+            "percentage" : 100,
+            "total" : 220,
+            "uncoverable" : 0
+         },
+         "condition" : {
+            "covered" : 86,
+            "error" : 0,
+            "percentage" : 100,
+            "total" : 86,
+            "uncoverable" : 0
+         },
+         "statement" : {
+            "covered" : 445,
+            "percentage" : 100,
+            "total" : 445
+         },
+         "subroutine" : {
+            "covered" : 80,
+            "percentage" : 100,
+            "total" : 80
+         },
+         "total" : {
+            "covered" : 831,
+            "error" : 0,
+            "percentage" : 100,
+            "total" : 831,
+            "uncoverable" : 0
+         }
+      },
+      "blib/lib/Test/Log/Abstraction.pm" : {
+         "branch" : {
+            "covered" : 220,
+            "error" : 0,
+            "percentage" : 100,
+            "total" : 220,
+            "uncoverable" : 0
+         },
+         "condition" : {
+            "covered" : 86,
+            "error" : 0,
+            "percentage" : 100,
+            "total" : 86,
+            "uncoverable" : 0
+         },
+         "statement" : {
+            "covered" : 445,
+            "percentage" : 100,
+            "total" : 445
+         },
+         "subroutine" : {
+            "covered" : 80,
+            "percentage" : 100,
+            "total" : 80
+         },
+         "total" : {
+            "covered" : 831,
+            "error" : 0,
+            "percentage" : 100,
+            "total" : 831,
+            "uncoverable" : 0
+         }
+      }
+   }
+}
