@@ -459,11 +459,16 @@ diag      valid: 'all' or 'none' (any case); a level name (any case),
           once; absent or undef: $config{diag}.  Invalid: any other
           string, including '' and numbers such as '4'; a list
           element that is not a level name (or is 'all'); a hash,
-          code or scalar reference.
+          code or scalar reference; any object, including one that
+          only claims to be an array, such as bless({}, 'ARRAY').
+          (An array blessed into the class ARRAY is still an array
+          of names, and valid.)
 level     valid: the 16 level names, any case, setting 0 (emergency)
           to 7 (trace); absent or undef: $config{level}.  Invalid:
           '', numbers (even 0 to 7), any other name.  The error shows
-          the name as it was given ('LOUD', not 'loud').
+          the name as it was given ('LOUD', not 'loud').  Level names are
+          ASCII: a non-ASCII letter ('\x{130}NFO', a dotted
+          capital I) makes another name, even after lower-casing.
 lang      valid: 'auto' (any case); 2 or 3 ASCII letters, then
           optionally one of _ . @ - and anything else ('de',
           'eng', 'de_DE.UTF-8', 'zh-Hant').  A code with no catalogue
@@ -474,12 +479,18 @@ country   valid: exactly 2 ASCII letters, any case; one with no
           mapping ('JP') gives 'en'.  Invalid: 1 or 3 letters, '',
           digits, non-ASCII letters.
 i18n      valid: a hash reference (even empty).  Invalid: any other
-          type.
+          type.  A reference that only claims to be a hash, such
+          as bless([], 'HASH'), passes the type check and is then
+          ignored, as is a language table or a form that is not
+          really a hash.  Tables may be nested to any depth; a part
+          of a table that contains itself is left out of the copy.
 ```
 
 An "invalid argument" explanation, and a level or diag name repeated in an
 error, is at most 200 characters; one longer is cut to 200 and ends with
-"...".  Control characters in it are shown as `\xNN`.
+"...".  Control characters in it are shown as `\xNN`.  A level or diag name that is a
+character string but not valid UTF-8 is never a level name, and is shown
+with U+FFFD in place of each bad part.
 
 ##### Output
 
@@ -603,7 +614,10 @@ one is dropped; a blessed hash is part of the message.  Text may be ASCII,
 decoded text in any script (accents, CJK, emoji and emoji sequences,
 combining marks, right-to-left text, zero-width characters) or bytes; it
 is stored with its length unchanged.  See ["ENCODING"](#encoding) for how it is
-printed.
+printed.  Hashes and arrays are rendered to any depth, in time linear in
+their size.  A part that cannot be read (a tied value whose FETCH dies) is
+shown as its tie object's plain form, and a reference that is not really
+the type it claims, such as bless({}, 'ARRAY'), in Perl's plain form.
 
 ##### Output
 
@@ -727,7 +741,10 @@ Domains: any method name, including '', non-ASCII names and very long
 names.  The message is stored under the name in lower case, in full.  The
 notice shows the name escaped and cut: up to 200 characters it is shown
 whole, and from 201 on it is cut to 200 followed by '...' (see
-["DIAGNOSTICS"](#diagnostics)).  The length is counted in characters, not bytes.
+["DIAGNOSTICS"](#diagnostics)).  The length is counted in characters, not bytes.  A
+name that is a character string but not valid UTF-8 is stored with U+FFFD
+in place of each bad part, and is found again by count() and has\_level()
+under the same name.
 
 ##### Output
 
@@ -908,7 +925,9 @@ is($logger->count('error'), 1, 'one of them is an error');
 
 Domains: undef counts every message; a string counts messages at that
 level, any case ('', '0' and unknown names give 0; aliases are separate
-names).  Invalid: any reference.
+names).  Invalid: any reference.  A name may be any string, including non-ASCII text and a
+character string that is not valid UTF-8, which is matched as the same
+repaired name AUTOLOAD stores.
 
 ##### Output
 
@@ -970,7 +989,10 @@ $logger->like(qr/^Cannot open/i, 'the open error was logged');
 
 Domains: pattern - a qr// or a string, which is compiled as a regular
 expression ('' matches every message).  Invalid: undef, any other
-reference, a string that does not compile or can never match.  name -
+reference, a string that does not compile or can never match, and a
+character string that is not valid UTF-8.  A character pattern (such as
+qr/\\x{1F600}/) matches text logged as characters, and not the same text
+logged as UTF-8 bytes; a byte pattern matches bytes only.  name -
 undef, or any string (including '' and non-ASCII text).  Invalid: a
 reference.
 
@@ -1103,6 +1125,7 @@ $logger->has_level('error', 'the failure was logged');
 
 Domains: level - a string, any case ('' and unknown names match
 nothing; aliases are separate names).  Invalid: undef, any reference.
+Any string is valid, as for ["count"](#count).
 name - as for ["like"](#like).
 
 ##### Output
@@ -1288,7 +1311,9 @@ such as '0' or '8', unknown names - warns and returns undef.  A reference
 is treated as its text form: a plain reference such as ARRAY(0x...) is
 never a level name, so it warns; an object whose overloaded text form is
 a level name sets that level; an object whose text form dies is shown in
-plain form in the warning.
+plain form in the warning.  A character string that is not valid
+UTF-8, or holds a surrogate, is never a level name: it warns, with no
+other warning.
 
 ##### Output
 
@@ -1634,7 +1659,16 @@ $self->i18n('logged', { gender => 'male', count => 2 });    # 'He logged 2 lines
 Domains: key - any string; undef renders as '', a reference as its
 string form, and an unknown key is returned as it is.  args - a hash
 reference; anything else is ignored.  count - a number selects a plural
-form (0 uses 'zero' when present); anything else uses 'other'.
+form; anything else (text, '', undef, a reference) uses 'other'.  A
+count equal to 0 (0, '0.0', '-0') uses 'zero' when the template has
+it.  Otherwise: in English and German 'one' is exactly 1 (0.999, 1.001,
+\-1 and 0 are 'other'); in French 'one' is any count above -2 and below 2
+(-2 and 2 are 'other', -1.999 and 1.999 are 'one'); in Chinese it is
+always 'other'.  A form the template lacks becomes 'other'.  gender - a
+value naming a form of the template selects it; any other value,
+including undef and '' when there is no such form, falls through to the
+plural forms.  A gender that is an object is matched by its text form.  A
+template or form that is not a string or a hash is shown as its text form.
 Placeholder values: any value.  With an integer format, `%d` and `%i`
 show -2\*\*63 to 2\*\*63-1, and `%u`, `%o`, `%x`, `%X`, `%b` and `%c`
 show 0 to 2\*\*64-1 (a negative number down to -2\*\*63 in two's

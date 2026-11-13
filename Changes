@@ -75,6 +75,14 @@ Revision history for Test-Log-Abstraction
 	- t/function.t no longer expects 1e30 to be written '1e+30': with
 		quad-precision long doubles perl writes all 31 digits
 	[ Documentation ]
+	- The API SPECIFICATION domains now cover the encoding of names and
+		patterns (malformed text and surrogates are never level names;
+		character and byte patterns never match each other's text),
+		references that only claim to be arrays or hashes, unlimited
+		nesting depth, unreadable arguments, and the exact edges of the
+		plural forms in each language and of the gender option.
+		t/domain.t tests each partition, and nesting either side of
+		perl's recursion warning at depth 100
 	- COMMON PITFALLS and the i18n() domains explain that a number "shown
 		as written" is shown as perl writes it, which depends on how
 		perl was built (1e+30, or all 31 digits with long doubles)
