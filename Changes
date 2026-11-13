@@ -1,5 +1,15 @@
 Revision history for Test-Log-Abstraction
 
+0.002.2
+	[ Bug Fixes ]
+	- On perls built with -Duselongdouble, an integer placeholder too big
+		for its conversion, such as %{v}d of 1e19, was shown as
+		10000000000000000000 instead of as written (1e+19): the range
+		checks cached an integer in the value, which perl then printed.
+		They now work on a copy.  Fixes GitHub#3
+	- t/function.t no longer expects 1e30 to be written '1e+30': with
+		quad-precision long doubles perl writes all 31 digits
+
 0.002.1	Tue Oct 27 02:56:03 PM EDT 2026
 	[ Enhancements ]
 	- The level names and severities now come from Readonly::Values::Syslog,

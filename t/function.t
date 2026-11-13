@@ -1254,7 +1254,10 @@ subtest '_format: integers at the limits are still formatted' => sub {
 
 subtest 'i18n: an enormous count in a template is not turned into -1' => sub {
 	my $self = logger(i18n => { en => { n => { other => '%{count}d items, %{count}x in hex' } } });
-	is($self->i18n('n', { count => 1e30 }), '1e+30 items, 1e+30 in hex', 'a number beyond 64 bits is shown as written');
+	# How perl writes 1e30 depends on the float: '1e+30' with doubles, all
+	# 31 digits with quad-precision long doubles
+	my $written = '' . 1e30;
+	is($self->i18n('n', { count => 1e30 }), "$written items, $written in hex", 'a number beyond 64 bits is shown as written');
 	is($self->i18n('n', { count => 255 }), '255 items, ff in hex', 'an ordinary count is formatted');
 };
 

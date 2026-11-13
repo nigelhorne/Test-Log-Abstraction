@@ -2890,7 +2890,13 @@ sub _format {
 	return '%' if(defined($percent));
 	return 'undef' if(!defined($value));
 
-	my $numeric = !ref($value) && Scalar::Util::looks_like_number($value) && ($value == $value) && (abs($value) != 9**9**9);
+	# Numbers are tested on a copy.  abs(), <, sprintf and int() cache an
+	# integer in their argument, and where a float holds that integer
+	# exactly (long doubles hold 64 bits) perl then writes the value from
+	# the integer: 1e19 would become 10000000000000000000, not be shown as
+	# written
+	my $number = $value;
+	my $numeric = !ref($number) && Scalar::Util::looks_like_number($number) && ($number == $number) && (abs($number) != 9**9**9);
 	# A finite number too big for an integer conversion would be cut to
 	# -1, ffffffffffffffff or the most negative integer, so it is shown as
 	# written unless sprintf reads it as itself.  Checking against Inf alone
@@ -2898,8 +2904,8 @@ sub _format {
 	# %d and %i read the value as signed; the others as unsigned, unless it
 	# is negative, which they print in two's complement
 	if($numeric && ($conversion =~ /[diuoxXbc]\z/)) {
-		my $as = (($conversion =~ /[di]\z/) || ($value < 0)) ? '%d' : '%u';
-		my $read = sprintf($as, $value);
+		my $as = (($conversion =~ /[di]\z/) || ($number < 0)) ? '%d' : '%u';
+		my $read = sprintf($as, $number);
 		# Compared as text, never as numbers: a number would first become a
 		# float, which rounds 2**64 down onto the largest integer and so
 		# hides that it does not fit.  A string of digits can hold more
@@ -2921,7 +2927,7 @@ sub _format {
 		}ax) {
 			$numeric = ($read eq ((($1 eq '-') && ($2 ne '0')) ? "-$2" : $2));
 		} else {
-			$numeric = ($read eq sprintf('%.0f', int($value)));
+			$numeric = ($read eq sprintf('%.0f', int($number)));
 		}
 	}
 	# An object whose overloaded "" dies is shown in plain form, as in
