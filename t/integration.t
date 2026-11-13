@@ -28,7 +28,7 @@ use Readonly;
 use Errno qw(EACCES ENOENT);
 use File::Spec;
 use File::Temp qw(tempdir);
-use JSON::PP ();
+use JSON::MaybeXS ();
 use Encode ();
 use Time::HiRes ();
 use Capture qw(capture_diag run_perl_script);
@@ -144,7 +144,7 @@ sub os_text {
 			$log->warn("upstream failed for $id: ", $error);
 			return;
 		}
-		my $data = eval { JSON::PP->new()->decode($raw) };
+		my $data = eval { JSON::MaybeXS->new()->decode($raw) };
 		if(ref($data) ne 'HASH') {
 			$log->error("malformed payload for $id", { payload => substr($raw, 0, $PAYLOAD_PREVIEW) });
 			return;

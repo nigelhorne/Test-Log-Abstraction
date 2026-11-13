@@ -41,7 +41,7 @@ WriteMakefile(
 		'Exporter' => 0,
 		'File::Temp' => 0,
 		'Log::Abstraction' => 0.41,
-		'JSON::PP' => 0,
+		'JSON::MaybeXS' => 0,
 		'Test::Builder::Tester' => 0,
 		'Test::Memory::Cycle' => 0,
 		'Test::Permissions' => 0,

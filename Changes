@@ -54,6 +54,15 @@ Revision history for Test-Log-Abstraction
 		everything below it, so a hash nested 80,000 deep took 11 seconds
 		to log.  It now takes a fiftieth of that
 	- t/edge_cases.t has a test for each of these
+	- When one log argument died when read, the arguments before it were
+		read a second time, so a tied argument that changes on every read
+		was stored as its second value.  Each argument is now read exactly
+		once, in order
+	- A misspelt method (AUTOLOAD) copied its arguments outside any eval,
+		so a tied argument whose FETCH dies still killed the call.  It
+		now passes them on unread.  t/data-flow.t traces both, and checks
+		that the caller's arguments and malformed names are never changed,
+		and that rendering state does not carry over between messages
 	- An invalid argument whose value contains "validate_strict:", such as
 		lang => 'x validate_strict: y', is reported in full: the error
 		was cut at those words, losing the parameter name and most of the

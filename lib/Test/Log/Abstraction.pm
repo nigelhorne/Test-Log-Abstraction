@@ -1572,12 +1572,17 @@ sub _entry {
 	local $@;	# reading and rendering below may fail, inside eval; the caller's $@ stays
 
 	# Copying the arguments reads them, and a tied scalar whose FETCH dies
-	# would kill the log call.  One eval around the whole copy keeps the
-	# usual case cheap; only when it fails is each argument read alone, and
-	# one that cannot be read is shown as its tie object's plain form
+	# would kill the log call.  Each argument must also be read exactly
+	# once: a tied one may give a new value on every read, and the entry
+	# must hold the value at the moment it was logged.  So the copy goes
+	# one argument at a time, inside one eval for the usual case; push()
+	# appends nothing when the read dies, so after a failure @args holds
+	# exactly the arguments already read, and the copy resumes after the
+	# one that died, which is shown as its tie object's plain form
 	my @args;
-	if(!eval { @args = @{$args}; 1 }) {
-		@args = map { my $part; eval { $part = $_; 1 } ? $part : overload::StrVal(tied($_)) } @{$args};
+	while(@args < @{$args}) {
+		last if(eval { push @args, $args->[$_] foreach scalar(@args) .. $#{$args}; 1 });
+		push @args, overload::StrVal(tied($args->[scalar(@args)]));
 	}
 
 	# A trailing plain hash after the message is structured fields.  A tied
@@ -1793,7 +1798,11 @@ L</DIAGNOSTICS>).  The length is counted in characters, not bytes.
 =cut
 
 sub AUTOLOAD {
-	my ($self, @args) = @_;
+	# Only the invocant is taken off.  Copying the rest into a lexical
+	# would read each one here, outside the eval that _entry() reads them
+	# in, so a tied argument whose FETCH dies would kill the call; and it
+	# would read a tied argument twice
+	my $self = shift;
 
 	# A method name can be anything, even empty: $logger->$name() with ''.
 	#   Premise 1: Perl always sets $AUTOLOAD to "Package::name".
@@ -1802,7 +1811,7 @@ sub AUTOLOAD {
 	# A name that is not valid UTF-8 panics the match ("pp_match start/end
 	# pointers"), so it is repaired first; its bad bytes become U+FFFD
 	my ($name) = (_repaired($AUTOLOAD) =~ /::([^:]*)\z/);
-	_object($self, $name)->_record($name, \@args);
+	_object($self, $name)->_record($name, \@_);
 
 	# The name is the caller's, so it may hold control characters or be
 	# huge; the notice repeats it escaped and cut, as every error does

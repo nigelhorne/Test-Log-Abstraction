@@ -24,7 +24,7 @@ on 'test' => sub {
 	requires 'Errno';
 	requires 'Exporter';
 	requires 'File::Temp';
-	requires 'JSON::PP';
+	requires 'JSON::MaybeXS';
 	requires 'Log::Abstraction', '0.41';
 	requires 'Test::Builder::Tester';
 	requires 'Test::Memory::Cycle';
