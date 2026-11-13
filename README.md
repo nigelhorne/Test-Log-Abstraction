@@ -292,6 +292,20 @@ A misspelt level name given to `count()` is not caught either: see
 printed, set `verbose => 0` or `$ENV{TEST_VERBOSE} = 0`.
 - **`level()` does not hide messages.**  It only changes the answers
 of the `is_*` methods.  Every message is still stored.
+- **A very big number is not always written the same way.**  In a
+message template, a number too big for an integer format (such as
+`%{count}d` of `1e30`) is shown as Perl writes it.  Most Perls write
+`1e30` as `1e+30`.  A Perl built with `-Duselongdouble` may write all
+31 digits, `1000000000000000000000000000000`.  So in a test, do not type
+the expected text.  Let Perl make it:
+
+    ```perl
+    my $written = '' . 1e30;    # '1e+30' or all 31 digits
+    is($self->i18n('n', { count => 1e30 }), "$written items");
+    ```
+
+    A string, such as `'1e30'` in quotes, is always shown exactly as you
+    typed it.
 
 ## Encoding
 
@@ -1607,7 +1621,10 @@ show -2\*\*63 to 2\*\*63-1, and `%u`, `%o`, `%x`, `%X`, `%b` and `%c`
 show 0 to 2\*\*64-1 (a negative number down to -2\*\*63 in two's
 complement).  Leading zeros and a leading `+` are allowed, and '-0' is 0.
 A value outside these ranges, text, infinity and NaN are shown as written.
-(These limits are for a Perl with 64-bit integers.)
+(These limits are for a Perl with 64-bit integers.)  "As written" means
+the text that Perl makes when it prints the value, `"$value"`.  For a
+number (not a string) this text depends on how Perl was built: see
+["COMMON PITFALLS"](#common-pitfalls).
 
 ##### Output
 
