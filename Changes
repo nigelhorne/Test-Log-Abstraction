@@ -2,157 +2,46 @@ Revision history for Test-Log-Abstraction
 
 0.002.2
 	[ Security ]
-	- A printed message (verbose mode, or listed under a failing
-		assertion) has its control characters, except tab and newline,
-		shown as \xNN, as is its level.  Text from a fixture could
-		otherwise send terminal control sequences: clear the screen,
-		hide lines in a CI log or, on some terminals, set the clipboard.
-		The stored message is unchanged.  Log::Abstraction prints them raw;
-		see COMMON PITFALLS
-	- Values repeated in errors and warnings also have the Unicode bidi
-		controls shown as \x{NNNN}, so a value cannot make a message read
-		differently on screen from what it says
-	- A character string that is not valid UTF-8 no longer makes printing
-		die or warn: it is printed with U+FFFD for each bad part
+	- Printed messages and levels show control characters (except tab and
+		newline) as \xNN, so fixture text cannot send terminal control
+		sequences.  The stored message is unchanged; see COMMON PITFALLS
+	- Values repeated in errors and warnings show Unicode bidi controls
+		as \x{NNNN}
+	- Printing a character string that is not valid UTF-8 no longer dies
+		or warns: each bad part is shown as U+FFFD
 	[ Bug Fixes ]
-	- Calling carp, croak, get_params, validate_strict, qv or Readonly
-		on a logger no longer reaches the functions this module imported:
-		$logger->croak('x') died with a raw Test::Log::Abstraction=HASH
-		message and $logger->carp('x') warned.  Like any other unknown
-		method they now go to AUTOLOAD (stored, with a notice), and
-		t/autoload.t checks the package holds only documented methods
-	- like() and unlike() no longer warn on Perl 5.42 when given a
-		pattern that is a character string but not valid UTF-8.  5.42
-		reports the malformed bytes as plain warnings before the fatal
-		error, despite FATAL warnings; any warning while compiling a
-		pattern is now the error, so every version croaks with the same
-		detailed reason and nothing reaches the caller
+	- carp, croak, get_params, validate_strict, qv and Readonly were
+		callable as logger methods, so $logger->croak('x') died and
+		$logger->carp('x') warned.  They now go to AUTOLOAD like any
+		other unknown method
+	- like() and unlike() no longer warn on Perl 5.42 for a pattern that
+		is not valid UTF-8; they croak with the same reason everywhere
 	- A failing like(), unlike(), has_level() or empty() inside a subtest
-		was reported at a line inside Test::Builder, not at the line
-		that called it: $Test::Builder::Level was raised by one frame too
-		many.  At the top level of a file it happened to look right.
-		t/integration.t now checks the line at three depths
-	- Logging no longer dies when an argument is a tied scalar or a tied
-		array whose FETCH dies: the argument is shown as its tie
-		object's plain form, as a tied fields hash already was
-	- A reference blessed into a class called ARRAY or HASH, such as
-		bless({}, 'ARRAY'), no longer kills a log call, new() or i18n()
-		with Perl's "Not an ARRAY reference".  As diag it gives the usual
-		diag error; as an i18n table or template it is ignored or shown
-		as text; as a message it is shown in Perl's plain form
-	- A character string that is not valid UTF-8 no longer kills level(),
-		count(), has_level(), new(level => ...), new(diag => ...) or a
-		misspelt method with "Malformed UTF-8 character (fatal)", or with
-		a "pp_match" panic.  Names are repaired (U+FFFD for each bad part)
-		before they are lower-cased, and croak() and carp() no longer let
-		Carp format the caller's arguments, which died inside Carp.  As a
-		pattern to like() or unlike() it is an invalid argument, not a
-		stream of warnings
-	- A level or method name holding a UTF-16 surrogate no longer makes
-		lc() warn
-	- i18n() no longer dies when a template from the i18n option, or the
-		gender value, is an object whose overloaded "" dies: the template
-		is shown in plain form, and the gender is matched by that form
-	- Rendering a deeply nested hash or array is linear: each level copied
-		everything below it, so a hash nested 80,000 deep took 11 seconds
-		to log.  It now takes a fiftieth of that
-	- t/edge_cases.t has a test for each of these
-	- When one log argument died when read, the arguments before it were
-		read a second time, so a tied argument that changes on every read
-		was stored as its second value.  Each argument is now read exactly
-		once, in order
-	- An element of a tied array or hash whose FETCH dies, passed as a log
-		argument, vanished from the message, and logging warned "Use of
-		uninitialized value" from overload.pm: such an element has no tie
-		object of its own.  It is now shown as the plain form of a
-		reference to it, such as SCALAR(0x...)
-	- An argument such as substr($s, 10), which perl evaluates only when
-		it is read, made logging warn "substr outside of string" at the
-		module's line.  It is now read silently, as undef.  Both found by
-		t/path.t, which maps every path of the new code and again reaches
-		every statement, branch and condition on its own
-	- A misspelt method (AUTOLOAD) copied its arguments outside any eval,
-		so a tied argument whose FETCH dies still killed the call.  It
-		now passes them on unread.  t/data-flow.t traces both, and checks
-		that the caller's arguments and malformed names are never changed,
-		and that rendering state does not carry over between messages
-	- An invalid argument whose value contains "validate_strict:", such as
-		lang => 'x validate_strict: y', is reported in full: the error
-		was cut at those words, losing the parameter name and most of the
-		value.  Only Params::Validate::Strict's own prefix is removed now
-	- On perls built with -Duselongdouble, an integer placeholder too big
-		for its conversion, such as %{v}d of 1e19, was shown as
-		10000000000000000000 instead of as written (1e+19): the range
-		checks cached an integer in the value, which perl then printed.
-		They now work on a copy.  Fixes GitHub#3
+		is reported at the caller's line, not inside Test::Builder
+	- Logging no longer dies or warns on hostile arguments: tied values
+		whose FETCH dies, references blessed into ARRAY or HASH, text
+		that is not valid UTF-8 or holds a surrogate, and arguments such
+		as substr($s, 10).  Each argument is read exactly once, in order
+	- i18n() no longer dies on a template or gender object whose
+		overloaded "" dies
+	- Rendering deeply nested data is linear: a hash nested 80,000 deep
+		took 11 seconds to log
+	- An invalid argument containing "validate_strict:" is reported in
+		full instead of being cut at those words
+	- With -Duselongdouble, a too-big integer placeholder such as %{v}d
+		of 1e19 is shown as written (1e+19).  Fixes GitHub#3
 	[ Packaging ]
-	- autodie and IPC::System::Simple are no longer needed: the module
-		makes none of the calls autodie checks
-	- Log::Abstraction is recommended for testing, not required:
-		t/integration.t compares against it only when it is installed.
-		CI installs it with --with-recommends
-	- The licence in the META files is gpl_2, as the LICENSE file and
-		the POD say, not open_source
-	- overload, and the core modules the tests use (Config, File::Spec,
-		Test::More), are declared; Geo::IP is no longer a develop
-		requirement
+	- autodie and IPC::System::Simple are no longer needed
+	- Log::Abstraction is recommended for testing, not required
+	- The META licence is gpl_2, matching LICENSE and the POD
 	[ Documentation ]
-	- STATE DIAGRAM: _emit called on a logger is listed with the calls
-		that do not change the state.  The _emit POD says the message is
-		stored before _emit is called, so a replacement that dies loses
-		nothing
-	- The API SPECIFICATION domains now cover the encoding of names and
-		patterns (malformed text and surrogates are never level names;
-		character and byte patterns never match each other's text),
-		references that only claim to be arrays or hashes, unlimited
-		nesting depth, unreadable arguments, and the exact edges of the
-		plural forms in each language and of the gender option.
-		t/domain.t tests each partition, and nesting either side of
-		perl's recursion warning at depth 100
-	- COMMON PITFALLS and the i18n() domains explain that a number "shown
-		as written" is shown as perl writes it, which depends on how
-		perl was built (1e+30, or all 31 digits with long doubles)
-	[ Internal ]
-	- Tests that replace Params::Get or Params::Validate::Strict now mock
-		those modules' own functions, since nothing is imported any more
-	- t/function.t tests _escape() and _printable(), the bidi escaping in
-		_shown(), and that _record() and _explain() print through
-		_printable() while storing the original
-	- t/unit.t's ledger has the newly documented states: printed messages
-		and levels escaped, the stored message kept, C1 and malformed
-		UTF-8 when printing, bidi controls and the whole value in errors
-	- t/integration.t runs hostile upstream text through the importer:
-		stored as the real Log::Abstraction stores it, printed escaped,
-		and escaped for a subclass that replaces _emit()
-	- t/function.t no longer expects 1e30 to be written '1e+30': with
-		quad-precision long doubles perl writes all 31 digits
-	- t/transition.t checks that the POD, the STATE DIAGRAM and the code
-		agree: the diagram's states, a place in it for every documented
-		method, a real method for every call it names, and no clock reads
-		(there are no temporal edges).  Every documented method is run
-		from both states and checked against its role.  New subtests: a
-		replacement _emit that dies (the message is kept, once), a message
-		that logs while it is read, and a frozen clock warped a decade
-		forward (nothing expires).  It no longer prints a stray "# payload"
-	- t/logic.t proves the decisions added in this release: truth tables
-		for _is_a(), _repaired(), the read loop of _entry() (all 8 rows of
-		three arguments, each read once), _stringify(), and the claimed-
-		hash rows of _template() and _resolve_lang(); the premises that
-		let _is_a() skip a defined() test and Carp skip the arguments;
-		and, over every code point, that no non-ASCII name lower-cases to
-		a level name (only the Kelvin sign becomes ASCII, as 'k').  The
-		invariant and contradiction tables have rows for the new
-		hostile inputs
-	- t/transaction.t has the sequences added in this release: a log call
-		whose arguments die part way through the read (one entry, each
-		argument once and in order), a misspelt method failed at each of
-		its steps, the new steps of new() and of a clone failed in turn,
-		a tied argument that logs, clears, clones or changes the level of
-		the same logger while it is read, and hostile calls repeated.  It
-		now fails on any warning (Test::Warnings)
-	- level() answers a query (no argument) before making a lookup key,
-		and _plural() returns 'other' and 'zero' without looking them up
-		again; behaviour is unchanged.  t/logic.t proves both reductions
+	- The API SPECIFICATION domains cover encodings, fake array and hash
+		references, nesting depth, unreadable arguments and the edges of
+		plural forms and gender
+	- STATE DIAGRAM lists _emit on a logger; the _emit POD says the
+		message is stored before _emit is called
+	- COMMON PITFALLS explains that how a number is "shown as written"
+		depends on how perl was built
 
 0.002.1	Tue Oct 27 02:56:03 PM EDT 2026
 	[ Enhancements ]

@@ -36,8 +36,6 @@ on 'test' => sub {
 	requires 'Test::Warnings';
 	requires 'Test::Without::Module';
 	requires 'Time::HiRes';
-
-	# t/integration.t compares the two when it is installed
 	recommends 'Log::Abstraction', '0.41';
 };
 
