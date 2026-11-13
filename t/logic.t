@@ -711,4 +711,77 @@ subtest 'reduction: _object needs no defined() or ref() before isa()' => sub {
 	}
 };
 
+# level() decides "get" from the argument alone, before making a key.
+#   Premise 1: _string() returns a defined string for any defined value,
+#              even a false one, and even an object whose "" dies.
+#   Premise 2: so the key is undefined exactly when the argument is.
+#   Conclusion: only undef gets.  Every defined value, false ones
+#   included, is looked up and, if not a level, warned about; and the get
+#   path never calls _string().
+subtest 'reduction: level() decides get from the argument alone' => sub {
+	my $dies = bless {}, 'Local::DiesLevel';
+	{
+		package Local::DiesLevel;
+		use overload '""' => sub { die "no\n" }, fallback => 1;
+	}
+	ok(defined(Test::Log::Abstraction::_string($_)), 'premise 1: ' . (ref($_) || "'$_'") . ' gives a defined string') foreach ('', '0', 0, $dies);
+
+	my $logger = quiet(level => 'info');
+	my $strings = spy "${CLASS}::_string";
+	my $got = $logger->level(undef);
+	my @calls = $strings->();
+	restore_all();
+	is($got, $SEVERITY{'info'}, 'undef: get');
+	is(scalar(@calls), 0, 'undef: no key is made');
+
+	# The boundary: false but defined values are not the get case
+	foreach my $false ('', '0', 0) {
+		my $result = 'unset';
+		like(warning { $result = $logger->level($false) }, at_caller("invalid syslog level '$false'"), "'$false': looked up, and warned about");
+		ok(!defined($result), "'$false': returns undef");
+	}
+	like(warning { $logger->level($dies) }, qr/\A\Q$CLASS: invalid syslog level 'Local::DiesLevel=HASH(0x\E/, 'an object whose "" dies: looked up in plain form');
+	is($logger->level(), $SEVERITY{'info'}, '... and none of them changed the level');
+
+	# The warn case returns undef as a value, so list context sees one
+	my @list;
+	warning { @list = $logger->level('bogus') };
+	is_deeply(\@list, [undef], 'warn in list context: (undef), not ()');
+	is_deeply([$logger->level('ERROR')], [$logger], 'set in list context: (the logger)');
+};
+
+# _plural() returns at the first answer it is sure of.
+#   Premise 1: without a numeric count the answer is 'other', whatever the
+#              template holds.
+#   Premise 2: 'zero' is chosen only after finding it in the template.
+#   Conclusion: the first needs no lookup in the template and the second
+#   only one.  Only a form named by the language rule is looked for and
+#   may still fall back to 'other'.  Counted with a tied template.
+subtest 'reduction: _plural() returns at the first answer it is sure of' => sub {
+	{
+		package Local::CountingForms;
+		our $lookups = 0;
+		sub TIEHASH { my ($class, %forms) = @_; return bless { %forms }, $class }
+		sub EXISTS { $lookups++; return exists($_[0]->{$_[1]}) }
+		sub FETCH { return $_[0]->{$_[1]} }
+	}
+	my %rows = (
+		# name => [forms, count, wanted, lookups]
+		'not numeric, no other form' => [[one => 1], 'many', 'other', 0],
+		'undef count' => [[one => 1, other => 1], undef, 'other', 0],
+		'zero, has zero' => [[zero => 1, other => 1], 0, 'zero', 1],
+		'zero, no zero: the rule decides' => [[one => 1, other => 1], 0, 'other', 2],
+		'rule names a form it has' => [[one => 1, other => 1], 1, 'one', 1],
+		'rule names a form it lacks' => [[other => 1], 1, 'other', 1],
+		'not zero: zero is not looked for' => [[zero => 1, other => 1], 2, 'other', 1],
+	);
+	foreach my $row (sort keys %rows) {
+		my ($forms, $count, $want, $lookups) = @{$rows{$row}};
+		tie my %template, 'Local::CountingForms', @{$forms};
+		$Local::CountingForms::lookups = 0;
+		is(Test::Log::Abstraction::_plural(\%template, $count, 'en'), $want, "$row: $want");
+		is($Local::CountingForms::lookups, $lookups, "$row: $lookups lookup" . (($lookups == 1) ? '' : 's'));
+	}
+};
+
 done_testing();

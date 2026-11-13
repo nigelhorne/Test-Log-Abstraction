@@ -520,10 +520,11 @@ Readonly::Hash my %PLURAL => (
 # conversion may follow the name), and may be a hash keyed by gender or by
 # plural category instead of a string; see i18n().  Non-English text is
 # written with \x{} escapes to keep this source file ASCII.
-# Every i18n() call walks this table, so, like %SEVERITY, it is a plain hash
-# locked with Hash::Util, not a Readonly one, whose tie makes each of those
-# reads a method call; i18n() ran about a quarter faster.  Every lookup in it
-# is guarded with exists(), as a locked hash croaks on a missing key.
+# It is Readonly on purpose, as well as locked with Hash::Util below: a bug
+# that writes to it is caught at once.  The tie makes every read a method
+# call, so i18n() runs about a quarter slower than with a plain hash; that
+# is accepted.  Do not make it plain to gain speed.  Every lookup in it is
+# guarded with exists(), as a locked hash croaks on a missing key.
 Readonly::Hash my %MESSAGES => (
 	en => {
 		class_invocant => '%{class}s: %{method}s() must be called on an object, not on the class',
@@ -629,11 +630,13 @@ Hash::Util::lock_hash_recurse(%MESSAGES);
 # at every length.
 Readonly::Scalar my $LANG_FORMAT => qr/\A(?:(?i:auto)|[A-Za-z]{2,3}(?:[_.\@-][\w.\@-]*+)?)\z/;
 
-# The schemas below are plain hashes, neither Readonly nor locked.
-# Params::Validate::Strict reads every schema many times per call, and
-# through Readonly's tie that made new() three times slower.  It also reads
-# keys a schema does not have (such as 'members'), which a locked hash
-# refuses.  They are private to this file, and nothing writes to them.
+# The schemas below are Readonly on purpose: a bug that writes to one is
+# caught at once.  Params::Validate::Strict reads every schema many times
+# per call, and through Readonly's tie new() is about three times slower,
+# and like() and has_level() about a third slower, than with plain hashes;
+# that is accepted.  Do not make them plain to gain speed.  They are not
+# locked with Hash::Util: Params::Validate::Strict reads keys a schema does
+# not have (such as 'members'), which a locked hash refuses.
 
 # Schema for new()'s options.  diag is not listed: _diag_rule() validates it,
 # because its messages say what a valid diag is, which a type error cannot
@@ -2357,23 +2360,27 @@ sub level {
 	_object($self, 'level');
 
 	# Exactly one of three cases holds: no name (get), a level name (set),
-	# or anything else (warn).  Each sets the result once; the last leaves
-	# it undef, as Log::Abstraction returns.
-	# The name as a lookup key, made once.  Through _string(): an object
-	# whose overloading dies is not a level name, so it is warned about
-	# below instead of crashing the call
-	my $key = defined($name) ? lc(_string($name)) : undef;
-	my $result;
-	if(!defined($key)) {
-		$result = $self->{'level'};
-	} elsif(exists($SEVERITY{$key})) {
+	# or anything else (warn, and return undef, as Log::Abstraction does).
+	# Premise 1: _string() returns a defined string for any defined value.
+	# Premise 2: so the lookup key is undefined exactly when $name is.
+	# Conclusion: the get case is decided by $name alone, before any key
+	# is made.
+	return $self->{'level'} if(!defined($name));
+
+	# The name as a lookup key.  Through _string(): an object whose
+	# overloading dies is not a level name, so it is warned about below
+	# instead of crashing the call
+	my $key = lc(_string($name));
+	my $known = exists($SEVERITY{$key});
+	if($known) {
 		$self->{'level'} = $SEVERITY{$key};
-		$result = $self;
 	} else {
 		carp($self->i18n('invalid_level', { level => _shown($name) }));
 	}
 
-	return $result;
+	# undef as a value, not an empty list, so it is undef in list context
+	# too
+	return $known ? $self : undef;
 }
 
 =head2 flush
@@ -2839,11 +2846,19 @@ sub _variant {
 sub _plural {
 	my ($template, $count, $lang) = @_;
 
-	# Without a numeric count there is nothing to pluralise on
-	my $numeric = defined($count) && !ref($count) && Scalar::Util::looks_like_number($count);
-	my $form = !$numeric ? 'other'
-		: (($count == 0) && exists($template->{'zero'})) ? 'zero'
-		: ((defined($lang) && exists($PLURAL{$lang})) ? $PLURAL{$lang} : $PLURAL{$FALLBACK_LANG})->($count);
+	# Without a numeric count there is nothing to pluralise on.  'other'
+	# is the answer whether or not the template has it, so it is returned
+	# without looking
+	return 'other' if(!(defined($count) && !ref($count) && Scalar::Util::looks_like_number($count)));
+
+	# Premise 1: 'zero' is chosen only when the template has it.
+	# Premise 2: a form the template has is returned as it is.
+	# Conclusion: 'zero' needs no second look.
+	return 'zero' if(($count == 0) && exists($template->{'zero'}));
+
+	# Only the language's rule can name a form the template lacks
+	my $rule = (defined($lang) && exists($PLURAL{$lang})) ? $PLURAL{$lang} : $PLURAL{$FALLBACK_LANG};
+	my $form = $rule->($count);
 
 	return exists($template->{$form}) ? $form : 'other';
 }

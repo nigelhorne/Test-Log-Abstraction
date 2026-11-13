@@ -13,6 +13,10 @@ Revision history for Test-Log-Abstraction
 	- COMMON PITFALLS and the i18n() domains explain that a number "shown
 		as written" is shown as perl writes it, which depends on how
 		perl was built (1e+30, or all 31 digits with long doubles)
+	[ Internal ]
+	- level() answers a query (no argument) before making a lookup key,
+		and _plural() returns 'other' and 'zero' without looking them up
+		again; behaviour is unchanged.  t/logic.t proves both reductions
 
 0.002.1	Tue Oct 27 02:56:03 PM EDT 2026
 	[ Enhancements ]
