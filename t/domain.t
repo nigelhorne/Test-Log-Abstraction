@@ -571,13 +571,15 @@ subtest 'AUTOLOAD: notice name length boundary' => sub {
 			is($logger->count(lc($name)), 1, "$kind, $length characters: stored in full");
 		}
 	}
-	# Combining marks and direction overrides are not controls: they are
-	# shown, with the cut still counted in characters
-	foreach my $kind ('Zalgo (stacked combining marks)', 'right-to-left override') {
-		my $name = $TEXT{$kind};
-		my $out = Encode::decode('UTF-8', printed { quiet()->$name('m') });
-		ok(index($out, "no method '$name'") >= 0, "$kind: shown unchanged");
-	}
+	# Combining marks are not controls: they are shown unchanged
+	my $zalgo = $TEXT{'Zalgo (stacked combining marks)'};
+	my $out = Encode::decode('UTF-8', printed { quiet()->$zalgo('m') });
+	ok(index($out, "no method '$zalgo'") >= 0, 'Zalgo (stacked combining marks): shown unchanged');
+	# Direction overrides would make the notice read differently on screen
+	# from what it says, so they are escaped
+	my $override = $TEXT{'right-to-left override'};
+	$out = Encode::decode('UTF-8', printed { quiet()->$override('m') });
+	ok(index($out, q{no method '\x{202E}gnirts desrever\x{202C}'}) >= 0, 'right-to-left override: escaped');
 };
 
 subtest 'level: references' => sub {
@@ -642,7 +644,7 @@ subtest 'i18n: integer placeholder boundaries' => sub {
 	is($logger->i18n('x', { v => $BELOW_INT_MIN }), $BELOW_INT_MIN, '%x, below the signed minimum: shown as written');
 };
 
-subtest 'repeated values: C0 and C1 controls' => sub {
+subtest 'repeated values: C0, C1 and bidi controls' => sub {
 	# A level name is repeated in the warning, so it shows how a caller's
 	# value is escaped.  Character strings: U+007F and U+0080 to U+009F are
 	# escaped (U+009B starts a terminal sequence on its own); U+00A0 is
@@ -653,7 +655,18 @@ subtest 'repeated values: C0 and C1 controls' => sub {
 		'U+009B (one-character CSI)' => [decoded("a\x{9b}[2J"), 'a\x9B[2J'],
 		'U+009F, the last C1 control' => [decoded("a\x{9f}"), 'a\x9F'],
 		'U+00A0, just after the C1 controls' => [decoded("a\x{a0}"), decoded("a\x{a0}")],
-		'right-to-left override (not a control)' => [$TEXT{'right-to-left override'}, $TEXT{'right-to-left override'}],
+		# The bidi controls: the first and last of each range, and the marks
+		'U+200E, left-to-right mark' => ["a\x{200e}", 'a\x{200E}'],
+		'U+200F, right-to-left mark' => ["a\x{200f}", 'a\x{200F}'],
+		'U+202A, the first embedding' => ["a\x{202a}", 'a\x{202A}'],
+		'right-to-left override, U+202E' => [$TEXT{'right-to-left override'}, '\x{202E}gnirts desrever\x{202C}'],
+		'U+2066, the first isolate' => ["a\x{2066}", 'a\x{2066}'],
+		'U+2069, the last isolate' => ["a\x{2069}", 'a\x{2069}'],
+		# Just outside the ranges: shown as they are
+		'U+2029, just before the embeddings' => ["a\x{2029}", "a\x{2029}"],
+		'U+202F, just after them' => ["a\x{202f}", "a\x{202f}"],
+		'U+2065, just before the isolates' => ["a\x{2065}", "a\x{2065}"],
+		'U+206A, just after them' => ["a\x{206a}", "a\x{206a}"],
 		# The UTF-8 bytes of the euro sign include 0x82: a byte string's
 		# bytes are kept, or UTF-8 text would be mangled
 		'UTF-8 bytes in a byte string' => [Encode::encode('UTF-8', "\x{20ac}"), Encode::encode('UTF-8', "\x{20ac}")],

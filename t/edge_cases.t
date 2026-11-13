@@ -390,6 +390,53 @@ subtest 'errors that repeat a name escape it and cut it short' => sub {
 	throws_ok { $CLASS->new(level => "x\ny") } qr/\Q'x\x0Ay'\E/, 'the escape shows what the character was';
 };
 
+subtest 'printed messages cannot control the terminal' => sub {
+	# A logged message may hold text the test did not write.  It is printed
+	# when verbose, and listed under a failing assertion; both must show
+	# terminal controls as escapes.  Tab and newline lay the message out,
+	# and Test::Builder starts every line with '#', so they are kept
+	my $hostile = "a\tb\nc\e]52;c;cHduZWQ=\a\e[2J\rd";
+	# The tab and the line break are real; the rest is the escapes' text
+	my $escaped = "a\tb\n# c" . q{\x1B]52;c;cHduZWQ=\x07\x1B[2J\x0Dd};
+	my $logger = quiet(verbose => 1);
+	my $out = printed { $logger->warn($hostile) };
+	ok(index($out, "# $escaped") >= 0, 'verbose: controls escaped, tab and newline kept') or state_diag(verbose => $out);
+	is($logger->messages()->[0]->{'message'}, $hostile, '... and the stored message is unchanged');
+
+	$logger->verbose(0);
+	my $method = "lvl\e[31m";	# AUTOLOAD stores any method name as the level
+	printed { $logger->$method('m') };
+	(undef, $out) = failing(sub { $logger->unlike(qr/./) });
+	ok(index($out, "[warn] $escaped") >= 0, 'a failing assertion: the listed message is escaped') or state_diag(listed => $out);
+	ok(index($out, '[lvl\x1B[31m] m') >= 0, '... and so is a level made from a method name') or state_diag(listed => $out);
+	ok($out !~ /[\x00-\x08\x0B-\x1F\x7F]/, '... and nothing in the output is a control but tab and newline');
+
+	# The C1 controls are escaped in a character string, and kept in a byte
+	# string, where they are usually part of UTF-8 text
+	$out = Encode::decode('UTF-8', printed { quiet(verbose => 1)->warn("x\x{9b}2J\x{263a}") });
+	ok(index($out, "x\\x9B2J\x{263a}") >= 0, 'a C1 control in a character string: escaped') or state_diag(c1 => $out);
+	my $euro = Encode::encode('UTF-8', "\x{20ac}");	# its bytes include 0x82
+	$out = printed { quiet(verbose => 1)->warn("x$euro") };
+	ok(index($out, "x$euro") >= 0, 'UTF-8 bytes in a byte string: kept');
+
+	# A character string whose bytes are not valid UTF-8 cannot be read as
+	# characters; it must still be logged, printed and escaped, never die
+	my $malformed = "\e[2J\xff\xfe tail";
+	Encode::_utf8_on($malformed);
+	my $lived = eval { $out = printed { quiet(verbose => 1)->warn($malformed) }; 1 };
+	ok($lived, 'malformed UTF-8: logging does not die') or diag($@);
+	ok(index($out, '\x1B[2J') >= 0 && $out =~ /tail$/m, '... and its C0 controls are escaped') or state_diag(malformed => $out);
+	# A value repeated in an error goes through _shown(), which also looks
+	# for bidi controls and measures the length; it must not die or warn
+	# there either (Test::Warnings checks the warnings).  (Called directly:
+	# the public paths that repeat a name lower-case it first, and lc()
+	# itself dies on such a string)
+	my $shown;
+	$lived = eval { $shown = Test::Log::Abstraction::_shown($malformed); 1 };
+	ok($lived, 'malformed UTF-8 repeated in an error: does not die') or diag($@);
+	ok(defined($shown) && (index($shown, '\x1B[2J') == 0), '... and its C0 controls are escaped');
+};
+
 subtest 'patterns cannot run code' => sub {
 	my $logger = quiet();
 	$logger->info('x');

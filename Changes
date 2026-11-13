@@ -1,6 +1,19 @@
 Revision history for Test-Log-Abstraction
 
 0.002.2
+	[ Security ]
+	- A printed message (verbose mode, or listed under a failing
+		assertion) has its control characters, except tab and newline,
+		shown as \xNN, as is its level.  Text from a fixture could
+		otherwise send terminal control sequences: clear the screen,
+		hide lines in a CI log or, on some terminals, set the clipboard.
+		The stored message is unchanged.  Log::Abstraction prints them raw;
+		see COMMON PITFALLS
+	- Values repeated in errors and warnings also have the Unicode bidi
+		controls shown as \x{NNNN}, so a value cannot make a message read
+		differently on screen from what it says
+	- A character string that is not valid UTF-8 no longer makes printing
+		die or warn: it is printed with U+FFFD for each bad part
 	[ Bug Fixes ]
 	- An invalid argument whose value contains "validate_strict:", such as
 		lang => 'x validate_strict: y', is reported in full: the error

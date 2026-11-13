@@ -198,6 +198,14 @@ So a misspelt level (caught by L</AUTOLOAD>) is printed only by rules 1 to
 When a test method fails, the messages that explain the failure are printed
 under it.  So you can see why it failed without running the test again.
 
+A printed message may hold text that your test did not write, such as data
+from a fixture.  So when a message is printed, its control characters are
+shown as C<\xNN>, except tab and newline, which lay it out.  The escape
+character that starts a terminal control sequence, for example, is shown
+as C<\x1B>.  A message's level is shown the same way.  The stored message
+is not changed: C<like>, C<unlike> and C<messages()> see it exactly as it
+was logged.
+
 =head2 Global variables are left alone
 
 No method changes C<$@>, C<$!> or C<$_>, and none of them touches an
@@ -364,6 +372,12 @@ printed, set C<< verbose => 0 >> or C<$ENV{TEST_VERBOSE} = 0>.
 =item * B<C<level()> does not hide messages.>  It only changes the answers
 of the C<is_*> methods.  Every message is still stored.
 
+=item * B<Printed messages are escaped.>  When a message is printed, its
+control characters (except tab and newline) are shown as C<\xNN>, so text
+from a fixture cannot control your terminal.  L<Log::Abstraction> prints
+them as they are.  The stored message is not changed, so this matters only
+if your test checks what is printed.
+
 =item * B<A very big number is not always written the same way.>  In a
 message template, a number too big for an integer format (such as
 C<%{count}d> of C<1e30>) is shown as Perl writes it.  Most Perls write
@@ -397,8 +411,11 @@ against the stored text as it is.  So the pattern and the message must be
 the same kind of string.  A pattern with a character, such as
 C<qr/\x{1F600}/>, does not match the same emoji stored as UTF-8 bytes.
 
-=item * B<Printed messages.>  A Perl character string that has any
-character above ASCII is printed as UTF-8.  A byte string is printed
+=item * B<Printed messages.>  Control characters, except tab and
+newline, are printed as C<\xNN> (see L</Which messages are printed>).  A
+Perl character string that has any character above ASCII is printed as
+UTF-8.  A character string whose bytes are not valid UTF-8 is printed
+with U+FFFD in place of each bad part.  A byte string is printed
 unchanged.  Perl cannot always see the difference: a string that was not
 decoded, and has no character above 255 (such as C<"caf\x{e9}">), is
 treated as bytes.  If the output already has an encoding layer (for example, set
@@ -1064,6 +1081,70 @@ sub _string {
 	return defined($text) ? $text : overload::StrVal($value);
 }
 
+# Characters that are written as escapes in printed text.  A terminal acts
+# on them instead of showing them: ESC (\x1B) starts a control sequence that
+# can clear the screen, hide lines or, on some terminals, set the clipboard;
+# a newline can start a forged TAP line; and the bidi controls reorder what
+# is shown, so the text on screen is not the text that was printed.
+Readonly::Scalar my $CONTROL => qr/[\x00-\x1F\x7F]/;
+# The same, without tab (\x09) and newline (\x0A), for a logged message:
+# they lay it out, and Test::Builder starts every line with '#'
+Readonly::Scalar my $CONTROL_NOT_LAYOUT => qr/[\x00-\x08\x0B-\x1F\x7F]/;
+# The C1 controls.  U+009B is a one-character CSI that some terminals obey
+Readonly::Scalar my $C1 => qr/[\x{80}-\x{9F}]/;
+# Bidi marks, embeddings, overrides and isolates
+Readonly::Scalar my $BIDI => qr/[\x{200E}\x{200F}\x{202A}-\x{202E}\x{2066}-\x{2069}]/;
+
+# _escape - write control characters as escapes
+#
+# Purpose:      The one place that decides how a control character is shown,
+#               for _shown() and _printable().
+# Entry:        $text     - a defined string.
+#               $controls - qr// matching the C0 controls to escape.
+# Exit:         Returns the text with those controls written as \xHH, and in
+#               a character string the C1 controls too.  In a byte string
+#               the bytes 0x80 to 0x9F are kept: they are usually part of
+#               UTF-8 text, which escaping them would mangle.  A character
+#               string that is not valid UTF-8 is returned valid, with
+#               U+FFFD for each bad sequence.
+# Side effects: None.
+sub _escape {
+	my ($text, $controls) = @_;
+
+	# A character string whose bytes are not valid UTF-8 kills a regex that
+	# reads it as characters ("Malformed UTF-8 character (fatal)"), and
+	# length() and substr() warn on it; logging must never die or warn.
+	# So its bytes are decoded again, leniently: each bad sequence becomes
+	# U+FFFD, and what is left is a valid character string, escaped below
+	# like any other.  Only this copy changes, never what was stored
+	if(utf8::is_utf8($text) && !utf8::valid($text)) {
+		Encode::_utf8_off($text);
+		$text = Encode::decode('UTF-8', $text);
+	}
+
+	$text =~ s/($controls)/sprintf('\\x%02X', ord($1))/ge;
+	$text =~ s/($C1)/sprintf('\\x%02X', ord($1))/ge if(utf8::is_utf8($text));
+
+	return $text;
+}
+
+# _printable - make captured text safe to print
+#
+# Purpose:      A logged message, or a level name (AUTOLOAD stores any method
+#               name), may hold text the test did not write, such as data
+#               from a fixture.  Printed raw, its control characters would
+#               reach the terminal.
+# Entry:        $text - the text, or undef.
+# Exit:         Returns the text with control characters other than tab and
+#               newline written as \xHH (see _escape()); undef is returned
+#               as undef.  The stored entry is not changed.
+# Side effects: None.
+sub _printable {
+	my $text = shift;
+
+	return defined($text) ? _escape($text, $CONTROL_NOT_LAYOUT) : $text;
+}
+
 # _shown - make a caller's value safe to repeat in an error message
 #
 # Purpose:      An error that repeats what the caller passed must not let
@@ -1073,20 +1154,21 @@ sub _string {
 #               error enormous.
 # Entry:        $value - the value to show; a string, a reference, or undef.
 # Exit:         Returns the value with control characters written as \xHH
-#               (C1 controls too, in a character string), cut to $MAX_REASON characters followed by '...' if longer;
-#               undef is shown as 'undef'.  An object whose overloaded ""
-#               dies is shown in plain form, as Class=HASH(0x...).
+#               (C1 controls too, in a character string; see _escape()) and
+#               bidi controls as \x{HHHH}, cut to $MAX_REASON characters
+#               followed by '...' if longer; undef is shown as 'undef'.  An
+#               object whose overloaded "" dies is shown in plain form, as
+#               Class=HASH(0x...).
 # Side effects: None.  Never dies.
 sub _shown {
 	my $value = shift;
 
-	my $text = defined($value) ? _string($value) : 'undef';
-	$text =~ s/([\x00-\x1F\x7F])/sprintf('\\x%02X', ord($1))/ge;
-	# In a character string, U+0080 to U+009F are the C1 controls, and
-	# U+009B is a one-character CSI that some terminals obey, so they are
-	# escaped too.  In a byte string those bytes are usually part of UTF-8
-	# text, which escaping them would mangle, so they are kept
-	$text =~ s/([\x{80}-\x{9F}])/sprintf('\\x%02X', ord($1))/ge if(utf8::is_utf8($text));
+	my $text = _escape(defined($value) ? _string($value) : 'undef', $CONTROL);
+	# A bidi override would make the error read differently on screen from
+	# what it says.  Unlike the C1 controls, these are above U+00FF, so
+	# they can only be in a character string, never in UTF-8 bytes.
+	# _escape() has made any character string valid, so this cannot die
+	$text =~ s/($BIDI)/sprintf('\\x{%X}', ord($1))/ge;
 
 	return (length($text) > $MAX_REASON) ? substr($text, 0, $MAX_REASON) . '...' : $text;
 }
@@ -1410,7 +1492,9 @@ sub _record {
 	local ($@, $!);
 	my $entry = _entry(lc($level), $args);
 	push @{$self->{'messages'}}, $entry;
-	$self->_emit($entry->{'message'}) if($self->_diags($entry->{'level'}));
+	# Printed through _printable(): the message may hold text the test did
+	# not write.  The stored entry keeps it as it was
+	$self->_emit(_printable($entry->{'message'})) if($self->_diags($entry->{'level'}));
 
 	return $self;
 }
@@ -2220,7 +2304,8 @@ sub _explain {
 
 	my $last = ($total > $MAX_EXPLAIN) ? $MAX_EXPLAIN : $total;
 	foreach my $entry (@{$entries}[0 .. $last - 1]) {
-		$self->_emit($self->i18n('entry', { level => $entry->{'level'}, message => $entry->{'message'} }));
+		# Both may hold text the test did not write: see _printable()
+		$self->_emit($self->i18n('entry', { level => _printable($entry->{'level'}), message => _printable($entry->{'message'}) }));
 	}
 	$self->_emit($self->i18n('truncated', { count => $total - $last })) if($total > $last);
 
@@ -2588,7 +2673,10 @@ The logger.
 =head3 Side Effects
 
 Prints the line as a TAP comment, with L<Test::Builder/diag>.  This works
-even if the test did not load L<Test::More>.  A Perl character string is
+even if the test did not load L<Test::More>.  Text that came from a logged
+message has its control characters escaped before it is passed here (see
+L</Which messages are printed>), so a replacement C<_emit> gets safe text
+too.  A Perl character string is
 encoded as UTF-8 first, unless the output already has an encoding layer
 (see L</ENCODING>).
 
@@ -3079,9 +3167,12 @@ like this is cut to 200 characters, and control characters in it (such as
 a newline, or the escape character that starts a terminal control
 sequence) are shown as C<\xNN>.  In a character string, the C1 controls
 U+0080 to U+009F are shown as C<\xNN> too; in a byte string those bytes
-are kept, because they are usually part of UTF-8 text.  So a hostile value cannot make an error
-message enormous, add a forged C<ok> line to the output, or control your
-terminal.  An object whose text form (overloaded C<"">) dies is shown in
+are kept, because they are usually part of UTF-8 text.  The bidi controls
+(U+200E, U+200F, U+202A to U+202E and U+2066 to U+2069), which change the
+order in which text is shown, are shown as C<\x{NNNN}>.  So a hostile
+value cannot make an error message enormous, add a forged C<ok> line to
+the output, control your terminal, or make the message read differently
+on screen from what it says.  An object whose text form (overloaded C<"">) dies is shown in
 Perl's plain form, such as C<My::Class=HASH(0x55d0c8a1e2f8)>: the error
 or warning you get is this module's, not the object's.
 

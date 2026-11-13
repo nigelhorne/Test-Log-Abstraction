@@ -157,6 +157,14 @@ So a misspelt level (caught by ["AUTOLOAD"](#autoload)) is printed only by rules
 When a test method fails, the messages that explain the failure are printed
 under it.  So you can see why it failed without running the test again.
 
+A printed message may hold text that your test did not write, such as data
+from a fixture.  So when a message is printed, its control characters are
+shown as `\xNN`, except tab and newline, which lay it out.  The escape
+character that starts a terminal control sequence, for example, is shown
+as `\x1B`.  A message's level is shown the same way.  The stored message
+is not changed: `like`, `unlike` and `messages()` see it exactly as it
+was logged.
+
 ### Global Variables Are Left Alone
 
 No method changes `$@`, `$!` or `$_`, and none of them touches an
@@ -292,6 +300,11 @@ A misspelt level name given to `count()` is not caught either: see
 printed, set `verbose => 0` or `$ENV{TEST_VERBOSE} = 0`.
 - **`level()` does not hide messages.**  It only changes the answers
 of the `is_*` methods.  Every message is still stored.
+- **Printed messages are escaped.**  When a message is printed, its
+control characters (except tab and newline) are shown as `\xNN`, so text
+from a fixture cannot control your terminal.  [Log::Abstraction](https://metacpan.org/pod/Log%3A%3AAbstraction) prints
+them as they are.  The stored message is not changed, so this matters only
+if your test checks what is printed.
 - **A very big number is not always written the same way.**  In a
 message template, a number too big for an integer format (such as
 `%{count}d` of `1e30`) is shown as Perl writes it.  Most Perls write
@@ -321,8 +334,11 @@ file).
 against the stored text as it is.  So the pattern and the message must be
 the same kind of string.  A pattern with a character, such as
 `qr/\x{1F600}/`, does not match the same emoji stored as UTF-8 bytes.
-- **Printed messages.**  A Perl character string that has any
-character above ASCII is printed as UTF-8.  A byte string is printed
+- **Printed messages.**  Control characters, except tab and
+newline, are printed as `\xNN` (see ["Which messages are printed"](#which-messages-are-printed)).  A
+Perl character string that has any character above ASCII is printed as
+UTF-8.  A character string whose bytes are not valid UTF-8 is printed
+with U+FFFD in place of each bad part.  A byte string is printed
 unchanged.  Perl cannot always see the difference: a string that was not
 decoded, and has no character above 255 (such as `"caf\x{e9}"`), is
 treated as bytes.  If the output already has an encoding layer (for example, set
@@ -1483,7 +1499,10 @@ The logger.
 #### Side Effects
 
 Prints the line as a TAP comment, with ["diag" in Test::Builder](https://metacpan.org/pod/Test%3A%3ABuilder#diag).  This works
-even if the test did not load [Test::More](https://metacpan.org/pod/Test%3A%3AMore).  A Perl character string is
+even if the test did not load [Test::More](https://metacpan.org/pod/Test%3A%3AMore).  Text that came from a logged
+message has its control characters escaped before it is passed here (see
+["Which messages are printed"](#which-messages-are-printed)), so a replacement `_emit` gets safe text
+too.  A Perl character string is
 encoded as UTF-8 first, unless the output already has an encoding layer
 (see ["ENCODING"](#encoding)).
 
@@ -1715,9 +1734,12 @@ like this is cut to 200 characters, and control characters in it (such as
 a newline, or the escape character that starts a terminal control
 sequence) are shown as `\xNN`.  In a character string, the C1 controls
 U+0080 to U+009F are shown as `\xNN` too; in a byte string those bytes
-are kept, because they are usually part of UTF-8 text.  So a hostile value cannot make an error
-message enormous, add a forged `ok` line to the output, or control your
-terminal.  An object whose text form (overloaded `""`) dies is shown in
+are kept, because they are usually part of UTF-8 text.  The bidi controls
+(U+200E, U+200F, U+202A to U+202E and U+2066 to U+2069), which change the
+order in which text is shown, are shown as `\x{NNNN}`.  So a hostile
+value cannot make an error message enormous, add a forged `ok` line to
+the output, control your terminal, or make the message read differently
+on screen from what it says.  An object whose text form (overloaded `""`) dies is shown in
 Perl's plain form, such as `My::Class=HASH(0x55d0c8a1e2f8)`: the error
 or warning you get is this module's, not the object's.
 
