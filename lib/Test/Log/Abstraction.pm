@@ -918,7 +918,7 @@ sub _build {
 	# them, or changing them later would change this logger (and its
 	# clones).  A diag list holds names, so one level is enough, and keeps
 	# a bad element as it was for _diag_rule() to report.
-	$valid->{'diag'} = [ @{$valid->{'diag'}} ] if(ref($valid->{'diag'}) eq 'ARRAY');
+	$valid->{'diag'} = [ @{$valid->{'diag'}} ] if(_is_a($valid->{'diag'}, 'ARRAY'));
 	$valid->{'i18n'} = _copy_tree($valid->{'i18n'}, {}) if(exists($valid->{'i18n'}));
 
 	# Internal state is kept apart from options, so no option name can
@@ -940,7 +940,7 @@ sub _build {
 	# The name is looked up in lower case, but reported as it was given, as
 	# level() and every other error do
 	my $given = defined($valid->{'level'}) ? $valid->{'level'} : $config{'level'};
-	my $level = defined($given) ? lc($given) : 'undef';
+	my $level = defined($given) ? _lc($given) : 'undef';
 	$self->_croak('invalid_level', { level => _shown($given) }) if(!exists($SEVERITY{$level}));
 	$self->{'level'} = $SEVERITY{$level};
 
@@ -965,14 +965,16 @@ sub _copy_tree {
 	# Nested option tables are legitimate; Perl's warning at depth 100 is noise
 	no warnings 'recursion';	## no critic (ProhibitNoWarnings)
 
-	my $type = ref($value);
-	return $value if(($type ne 'HASH') && ($type ne 'ARRAY'));
+	# Through _is_a(): bless([], 'HASH') says 'HASH' but cannot be walked
+	# as one, and would kill new() with Perl's "Not a HASH reference"
+	my $hash = _is_a($value, 'HASH');
+	return $value if(!$hash && !_is_a($value, 'ARRAY'));
 
 	my $address = Scalar::Util::refaddr($value);
 	return if($path->{$address});
 	local $path->{$address} = 1;
 
-	return { map { $_ => scalar(_copy_tree($value->{$_}, $path)) } keys %{$value} } if($type eq 'HASH');
+	return { map { $_ => scalar(_copy_tree($value->{$_}, $path)) } keys %{$value} } if($hash);
 
 	return [ map { scalar(_copy_tree($_, $path)) } @{$value} ];
 }
@@ -1081,6 +1083,68 @@ sub _string {
 	return defined($text) ? $text : overload::StrVal($value);
 }
 
+# _repaired - a character string made valid, so that Perl can read it
+#
+# Purpose:      A character string whose bytes are not valid UTF-8 kills a
+#               regex that reads it as characters ("Malformed UTF-8
+#               character (fatal)"); lc() dies on it too, and length() and
+#               substr() warn.  A caller can pass one (Encode::_utf8_on() on
+#               bytes makes one), and no method may die or warn with Perl's
+#               message because of it.
+# Entry:        $text - a defined, non-reference value.
+# Exit:         Returns the text unchanged if it is a byte string or a valid
+#               character string.  Otherwise returns a copy whose bytes have
+#               been decoded again, leniently: each bad sequence becomes
+#               U+FFFD, and the result is a valid character string.
+# Side effects: None; only the copy changes, never the caller's value or
+#               what was stored.
+sub _repaired {
+	my $text = shift;
+
+	# Cheap tests first: a byte string, or valid text, is returned as it is
+	return $text if(!utf8::is_utf8($text) || utf8::valid($text));
+
+	Encode::_utf8_off($text);
+	return Encode::decode('UTF-8', $text);
+}
+
+# _lc - a caller's name in lower case, for a lookup
+#
+# Purpose:      Level and diag names are matched without regard to case.  A
+#               name may be any string the caller passed: lc() dies on one
+#               that is not valid UTF-8, and warns on a UTF-16 surrogate.
+# Entry:        $text - a defined, non-reference value.
+# Exit:         Returns the text in lower case, repaired by _repaired()
+#               first if it had to be.  A repaired name is never a level
+#               name, so it fails the lookup, as it should.
+# Side effects: None.  Never dies or warns.
+sub _lc {
+	my $text = _repaired(shift);
+
+	# 'utf8' covers the surrogate warning; the name is only a lookup key
+	no warnings 'utf8';	## no critic (ProhibitNoWarnings)
+	return lc($text);
+}
+
+# _is_a - is a value really the plain reference type it claims to be?
+#
+# Purpose:      ref() reports the class of an object, so bless({}, 'ARRAY')
+#               says 'ARRAY' while it is a hash, and dereferencing it as an
+#               array dies with Perl's "Not an ARRAY reference".  Every
+#               option or template that is walked as a hash or an array is
+#               tested with this first.
+# Entry:        $value - any value, or undef.
+#               $type  - 'HASH' or 'ARRAY'.
+# Exit:         Returns true if ref($value) and its underlying type are both
+#               $type; false otherwise, including for undef.
+# Side effects: None.
+sub _is_a {
+	my ($value, $type) = @_;
+
+	# reftype() is only reached for a reference, so it is never undef here
+	return (ref($value) eq $type) && (Scalar::Util::reftype($value) eq $type);
+}
+
 # Characters that are written as escapes in printed text.  A terminal acts
 # on them instead of showing them: ESC (\x1B) starts a control sequence that
 # can clear the screen, hide lines or, on some terminals, set the clipboard;
@@ -1111,17 +1175,7 @@ Readonly::Scalar my $BIDI => qr/[\x{200E}\x{200F}\x{202A}-\x{202E}\x{2066}-\x{20
 sub _escape {
 	my ($text, $controls) = @_;
 
-	# A character string whose bytes are not valid UTF-8 kills a regex that
-	# reads it as characters ("Malformed UTF-8 character (fatal)"), and
-	# length() and substr() warn on it; logging must never die or warn.
-	# So its bytes are decoded again, leniently: each bad sequence becomes
-	# U+FFFD, and what is left is a valid character string, escaped below
-	# like any other.  Only this copy changes, never what was stored
-	if(utf8::is_utf8($text) && !utf8::valid($text)) {
-		Encode::_utf8_off($text);
-		$text = Encode::decode('UTF-8', $text);
-	}
-
+	$text = _repaired($text);
 	$text =~ s/($controls)/sprintf('\\x%02X', ord($1))/ge;
 	$text =~ s/($C1)/sprintf('\\x%02X', ord($1))/ge if(utf8::is_utf8($text));
 
@@ -1194,15 +1248,15 @@ sub _resolve_lang {
 	} else {
 		# lang => 'auto' given, or the configured default
 		my $wanted = defined($options->{'lang'}) ? $options->{'lang'} : $config{'lang'};
-		my $auto = defined($wanted) && (lc($wanted) eq $LANG_AUTO);
+		my $auto = defined($wanted) && (_lc($wanted) eq $LANG_AUTO);
 
 		# The first set variable wins, as in POSIX setlocale()
 		($tag) = $auto ? (grep { defined($_) && length($_) } map { $ENV{$_} } @LOCALE_VARS) : ($wanted);
 	}
 
 	# 'de_DE.UTF-8' -> 'de'; the C and POSIX locales are English
-	my ($lang) = (lc(defined($tag) ? $tag : '') =~ /\A([a-z]{2,3})(?![a-z])/);
-	my $known = defined($lang) && (exists($MESSAGES{$lang}) || ($options->{'i18n'} && $options->{'i18n'}->{$lang}));
+	my ($lang) = (_lc(defined($tag) ? $tag : '') =~ /\A([a-z]{2,3})(?![a-z])/);
+	my $known = defined($lang) && (exists($MESSAGES{$lang}) || (_is_a($options->{'i18n'}, 'HASH') && $options->{'i18n'}->{$lang}));
 
 	return $known ? $lang : $FALLBACK_LANG;
 }
@@ -1222,7 +1276,7 @@ sub _diag_rule {
 
 	$spec = $config{'diag'} if(!defined($spec));
 
-	return { levels => { map { $self->_diag_level($_) => 1 } @{$spec} } } if(ref($spec) eq 'ARRAY');
+	return { levels => { map { $self->_diag_level($_) => 1 } @{$spec} } } if(_is_a($spec, 'ARRAY'));
 
 	$self->_croak('invalid_diag_type') if(ref($spec));
 
@@ -1231,7 +1285,7 @@ sub _diag_rule {
 	#   Premise 1: '' is neither 'all' nor 'none'.
 	#   Premise 2: undef is compared as '', so it is neither either.
 	#   So: one comparison each, with no defined() test before it.
-	my $name = defined($spec) ? lc($spec) : '';
+	my $name = defined($spec) ? _lc($spec) : '';
 	return {} if($name eq $DIAG_NONE);
 	return { all => 1 } if($name eq $DIAG_ALL);
 
@@ -1253,7 +1307,7 @@ sub _diag_level {
 
 	# Through _string(), so that an object whose overloading dies is
 	# reported, not allowed to crash the constructor with its own error
-	my $name = lc(defined($level) ? _string($level) : 'undef');
+	my $name = defined($level) ? _lc(_string($level)) : 'undef';
 	$self->_croak('invalid_diag_level', { level => _shown($level) }) if(!exists($SEVERITY{$name}));
 
 	return $name;
@@ -1490,7 +1544,7 @@ sub _record {
 	my ($self, $level, $args) = @_;
 
 	local ($@, $!);
-	my $entry = _entry(lc($level), $args);
+	my $entry = _entry(_lc($level), $args);
 	push @{$self->{'messages'}}, $entry;
 	# Printed through _printable(): the message may hold text the test did
 	# not write.  The stored entry keeps it as it was
@@ -1514,9 +1568,17 @@ sub _record {
 sub _entry {
 	my ($level, $args) = @_;
 
-	my @args = @{$args};
 	my $entry = { level => $level };
-	local $@;	# rendering below may fail, inside eval; the caller's $@ stays
+	local $@;	# reading and rendering below may fail, inside eval; the caller's $@ stays
+
+	# Copying the arguments reads them, and a tied scalar whose FETCH dies
+	# would kill the log call.  One eval around the whole copy keeps the
+	# usual case cheap; only when it fails is each argument read alone, and
+	# one that cannot be read is shown as its tie object's plain form
+	my @args;
+	if(!eval { @args = @{$args}; 1 }) {
+		@args = map { my $part; eval { $part = $_; 1 } ? $part : overload::StrVal(tied($_)) } @{$args};
+	}
 
 	# A trailing plain hash after the message is structured fields.  A tied
 	# hash can die when it is read, and logging must not; one that cannot
@@ -1532,8 +1594,14 @@ sub _entry {
 		}
 	}
 
-	# A lone array reference is a list of message parts
-	@args = @{$args[0]} if((@args == 1) && (ref($args[0]) eq 'ARRAY'));
+	# A lone array reference is a list of message parts.  Reading it may
+	# die: a tied array whose FETCHSIZE dies, or bless({}, 'ARRAY'), which
+	# says it is an array but is not.  Then it stays one part, which is
+	# shown in Perl's plain form below
+	if((@args == 1) && (ref($args[0]) eq 'ARRAY')) {
+		my @parts;
+		@args = @parts if(eval { @parts = @{$args[0]}; 1 });
+	}
 
 	# A part that cannot be rendered at all (a tied hash whose FETCH dies,
 	# say) is shown in Perl's plain form, so that logging never dies
@@ -1568,30 +1636,75 @@ sub _entry {
 #               hash, '[a, b]' for a plain array, $CYCLE for a reference
 #               that contains itself, and Perl's normal stringification
 #               otherwise (objects honour overloading).
-# Side effects: None.  $seen is restored on return.  Never dies or warns:
-#               an object whose overloaded "" dies is shown as Class=HASH(...).
+# Side effects: None.  $seen is restored on return.  Never warns, and an
+#               object whose overloaded "" dies is shown as Class=HASH(...).
+#               A tied container whose FETCH dies does die; the caller
+#               catches that and shows the whole part in plain form.
 sub _stringify {
 	my ($value, $seen) = @_;
+
+	# One buffer for the whole rendering.  Built by returning strings, each
+	# level copied everything below it into a new string: quadratic in the
+	# depth, 11 seconds for a hash nested 80,000 deep
+	my $text = '';
+	_render($value, $seen, \$text);
+
+	return $text;
+}
+
+# _render - append the rendering of one value to a buffer
+#
+# Purpose:      The recursive part of _stringify(), linear in the size of
+#               what it renders.
+# Entry:        $value - scalar, undef, or any reference.
+#               $seen  - as for _stringify().
+#               $out   - scalar reference to the buffer to append to.
+# Exit:         Returns nothing useful.
+# Side effects: Appends to ${$out}.  $seen is restored on return.
+sub _render {
+	my ($value, $seen, $out) = @_;
 
 	# Deeply nested data is legitimate; Perl's warning at depth 100 is noise
 	no warnings 'recursion';	## no critic (ProhibitNoWarnings)
 
-	return 'undef' if(!defined($value));
-
 	# Plain values, objects and other references: Perl's own form, through
 	# _string() so that an overloaded "" that dies cannot break a log call.
-	# Only plain hashes and arrays are written out as data
-	my $type = ref($value);
-	return _string($value) if(($type ne 'HASH') && ($type ne 'ARRAY'));
+	# Only plain hashes and arrays are written out as data; through _is_a(),
+	# as bless({}, 'ARRAY') says 'ARRAY' but cannot be walked as one
+	my $hash = _is_a($value, 'HASH');
+	if(!$hash && !_is_a($value, 'ARRAY')) {
+		${$out} .= defined($value) ? _string($value) : 'undef';
+		return;
+	}
 
 	# A structure that contains itself would otherwise recurse forever
 	my $address = Scalar::Util::refaddr($value);
-	return $CYCLE if($seen->{$address});
+	if($seen->{$address}) {
+		${$out} .= $CYCLE;
+		return;
+	}
 	local $seen->{$address} = 1;
 
-	return '{' . join(', ', map { "$_ => " . _stringify($value->{$_}, $seen) } sort keys %{$value}) . '}' if($type eq 'HASH');
+	my $separator = '';
+	if($hash) {
+		${$out} .= '{';
+		foreach my $key (sort keys %{$value}) {
+			${$out} .= "$separator$key => ";
+			_render($value->{$key}, $seen, $out);
+			$separator = ', ';
+		}
+		${$out} .= '}';
+	} else {
+		${$out} .= '[';
+		foreach my $item (@{$value}) {
+			${$out} .= $separator;
+			_render($item, $seen, $out);
+			$separator = ', ';
+		}
+		${$out} .= ']';
+	}
 
-	return '[' . join(', ', map { _stringify($_, $seen) } @{$value}) . ']';
+	return;
 }
 
 # _diags - should this level be printed?
@@ -1686,7 +1799,9 @@ sub AUTOLOAD {
 	#   Premise 1: Perl always sets $AUTOLOAD to "Package::name".
 	#   Premise 2: ([^:]*) matches any name after the last '::', even ''.
 	#   So: $name is always defined, and needs no fallback.
-	my ($name) = ($AUTOLOAD =~ /::([^:]*)\z/);
+	# A name that is not valid UTF-8 panics the match ("pp_match start/end
+	# pointers"), so it is repaired first; its bad bytes become U+FFFD
+	my ($name) = (_repaired($AUTOLOAD) =~ /::([^:]*)\z/);
 	_object($self, $name)->_record($name, \@args);
 
 	# The name is the caller's, so it may hold control characters or be
@@ -2114,7 +2229,7 @@ sub has_level {
 	my ($self, $level, $name) = @_;
 
 	_checked($self, 'has_level', 'needs_level', \%LEVEL_SCHEMA, level => $level, $name);
-	my $wanted = lc($level);
+	my $wanted = _lc($level);
 
 	# Only whether one message is at that level matters, so stop at the first
 	return $self->_assert((List::Util::any { $_->{'level'} eq $wanted } @{$self->{'messages'}}) ? 1 : 0, $name, 'captured', $self->{'messages'});
@@ -2234,16 +2349,20 @@ sub _checked {
 #               $pattern - qr// or string.
 # Exit:         Returns the compiled regular expression.
 # Side effects: Croaks with 'invalid_argument' if the pattern does not
-#               compile, contains code, or can never match.  Leaves $@ alone
+#               compile, contains code, can never match, or is a character
+#               string that is not valid UTF-8.  Leaves $@ alone
 #               otherwise.
 sub _regex {
 	my ($self, $pattern) = @_;
 
 	# A string is compiled here, so that a malformed one, one with code in
 	# it (not allowed at run time), or one Perl warns can never match, is
-	# the caller's error and not a crash or a stray warning
+	# the caller's error and not a crash or a stray warning.  'utf8' makes a
+	# character string that is not valid UTF-8 the caller's error too, rather
+	# than a stream of warnings and a pattern with unknown meaning; valid
+	# text, even a surrogate or a non-character, compiles without a warning
 	local $@;	# the caller's $@ must survive a good pattern
-	my $regex = eval { use warnings FATAL => 'regexp'; qr/$pattern/ };
+	my $regex = eval { use warnings FATAL => qw(regexp utf8); qr/$pattern/ };
 	$self->_croak('invalid_argument', { reason => _reason($@) }) if(!defined($regex));
 
 	return $regex;
@@ -2259,7 +2378,7 @@ sub _regex {
 sub _at_level {
 	my ($self, $level) = @_;
 
-	my $wanted = lc($level);
+	my $wanted = _lc($level);
 
 	return [ grep { $_->{'level'} eq $wanted } @{$self->{'messages'}} ];
 }
@@ -2469,11 +2588,13 @@ sub level {
 	# The name as a lookup key.  Through _string(): an object whose
 	# overloading dies is not a level name, so it is warned about below
 	# instead of crashing the call
-	my $key = lc(_string($name));
+	my $key = _lc(_string($name));
 	my $known = exists($SEVERITY{$key});
 	if($known) {
 		$self->{'level'} = $SEVERITY{$key};
 	} else {
+		# As in _croak(): Carp must not format the caller's arguments
+		local $Carp::MaxArgNums = -1;
 		carp($self->i18n('invalid_level', { level => _shown($name) }));
 	}
 
@@ -2892,7 +3013,10 @@ sub i18n {
 sub _template {
 	my ($self, $lang, $key) = @_;
 
-	my $overrides = (ref($self) && $self->{'options'}->{'i18n'}) || {};
+	# Through _is_a(): new() keeps an i18n option that only says it is a
+	# hash, such as bless([], 'HASH'), and it is ignored here
+	my $i18n = ref($self) ? $self->{'options'}->{'i18n'} : undef;
+	my $overrides = _is_a($i18n, 'HASH') ? $i18n : {};
 
 	# Overrides before built-ins, the logger's language before English
 	my $found;
@@ -2901,7 +3025,7 @@ sub _template {
 	SEARCH: foreach my $tag (($lang eq $FALLBACK_LANG) ? ($lang) : ($lang, $FALLBACK_LANG)) {
 		foreach my $source ($overrides, \%MESSAGES) {
 			my $table = exists($source->{$tag}) ? $source->{$tag} : undef;
-			next if((ref($table) ne 'HASH') || !exists($table->{$key}));
+			next if(!_is_a($table, 'HASH') || !exists($table->{$key}));
 			$found = $table->{$key};
 			last SEARCH;
 		}
@@ -2917,23 +3041,28 @@ sub _template {
 #               $args     - placeholder values; 'gender' and 'count' are
 #               consulted.
 #               $lang     - language, for its plural rules.
-# Exit:         Returns a string; '' if no form applies.
+# Exit:         Returns a string; '' if no form applies.  A form that is
+#               not a string is shown as Perl's text for it.
 # Side effects: None.  Each step descends one level, and a hash already
 #               visited ends the walk, so even a cyclic template terminates.
 sub _variant {
 	my ($template, $args, $lang) = @_;
 
 	my %visited;
-	while(ref($template) eq 'HASH') {
+	while(_is_a($template, 'HASH')) {
 		# A template from the i18n option may contain itself
 		return '' if($visited{Scalar::Util::refaddr($template)}++);
-		my $gender = $args->{'gender'};
+		# The gender is the caller's value, used as a key: through _string(),
+		# so an object whose overloaded "" dies cannot kill i18n()
+		my $gender = defined($args->{'gender'}) ? _string($args->{'gender'}) : undef;
 		my $form = (defined($gender) && exists($template->{$gender})) ? $gender : _plural($template, $args->{'count'}, $lang);
 		$template = exists($template->{$form}) ? $template->{$form} : '';
 	}
 
-	# A form given as undef in the i18n option renders as nothing
-	return defined($template) ? $template : '';
+	# A form given as undef in the i18n option renders as nothing.  Any
+	# other form is made text here, through _string(): an object whose
+	# overloaded "" dies would otherwise kill _interpolate()
+	return defined($template) ? _string($template) : '';
 }
 
 # _plural - choose a plural category for a count
@@ -3087,6 +3216,11 @@ sub _format {
 sub _croak {
 	my ($self, $key, $args) = @_;
 
+	# Carp formats every argument of the caller's frame, even for a croak
+	# that shows none of them, and its formatter dies on a character string
+	# that is not valid UTF-8: level($malformed) died inside Carp.  -1 tells
+	# it to format none, which changes nothing that a croak prints
+	local $Carp::MaxArgNums = -1;
 	croak($self->i18n($key, $args));
 }
 

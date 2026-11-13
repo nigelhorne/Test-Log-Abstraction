@@ -29,6 +29,31 @@ Revision history for Test-Log-Abstraction
 		that called it: $Test::Builder::Level was raised by one frame too
 		many.  At the top level of a file it happened to look right.
 		t/integration.t now checks the line at three depths
+	- Logging no longer dies when an argument is a tied scalar or a tied
+		array whose FETCH dies: the argument is shown as its tie
+		object's plain form, as a tied fields hash already was
+	- A reference blessed into a class called ARRAY or HASH, such as
+		bless({}, 'ARRAY'), no longer kills a log call, new() or i18n()
+		with Perl's "Not an ARRAY reference".  As diag it gives the usual
+		diag error; as an i18n table or template it is ignored or shown
+		as text; as a message it is shown in Perl's plain form
+	- A character string that is not valid UTF-8 no longer kills level(),
+		count(), has_level(), new(level => ...), new(diag => ...) or a
+		misspelt method with "Malformed UTF-8 character (fatal)", or with
+		a "pp_match" panic.  Names are repaired (U+FFFD for each bad part)
+		before they are lower-cased, and croak() and carp() no longer let
+		Carp format the caller's arguments, which died inside Carp.  As a
+		pattern to like() or unlike() it is an invalid argument, not a
+		stream of warnings
+	- A level or method name holding a UTF-16 surrogate no longer makes
+		lc() warn
+	- i18n() no longer dies when a template from the i18n option, or the
+		gender value, is an object whose overloaded "" dies: the template
+		is shown in plain form, and the gender is matched by that form
+	- Rendering a deeply nested hash or array is linear: each level copied
+		everything below it, so a hash nested 80,000 deep took 11 seconds
+		to log.  It now takes a fiftieth of that
+	- t/edge_cases.t has a test for each of these
 	- An invalid argument whose value contains "validate_strict:", such as
 		lang => 'x validate_strict: y', is reported in full: the error
 		was cut at those words, losing the parameter name and most of the
