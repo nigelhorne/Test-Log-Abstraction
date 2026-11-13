@@ -97,7 +97,7 @@ jobs:
         shell: bash
         run: |
           eval "$(perl -I ~/perl5/lib/perl5 -Mlocal::lib)"
-          cpanm --notest --installdeps --verbose .
+          cpanm --notest --installdeps --with-recommends --verbose .
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
@@ -106,7 +106,7 @@ jobs:
           @echo off
           set "PATH=%USERPROFILE%\perl5\bin;%PATH%"
           set "PERL5LIB=%USERPROFILE%\perl5\lib\perl5"
-          cpanm --notest --installdeps --verbose .
+          cpanm --notest --installdeps --with-recommends --verbose .
 
       - name: Reinstall YAML::XS against current Perl (Windows)
         if: runner.os == 'Windows'

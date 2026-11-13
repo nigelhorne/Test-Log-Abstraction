@@ -167,7 +167,7 @@ subtest '_args: normalises good shapes' => sub {
 };
 
 subtest '_args: hostile shapes become an empty hash' => sub {
-	my $get_params = spy "${CLASS}::get_params";
+	my $get_params = spy "Params::Get::get_params";
 	is_deeply(Test::Log::Abstraction::_args(['odd']), {}, 'single scalar');
 	is_deeply(Test::Log::Abstraction::_args([1, 2, 3]), {}, 'odd list');
 	is_deeply(Test::Log::Abstraction::_args([undef, 1]), {}, 'undefined key');
@@ -182,11 +182,11 @@ subtest '_args: hostile shapes become an empty hash' => sub {
 };
 
 subtest '_args: Params::Get failures are reported, not hidden' => sub {
-	mock "${CLASS}::get_params" => sub { die "Params::Get exploded\n" };
+	mock "Params::Get::get_params" => sub { die "Params::Get exploded\n" };
 	throws_ok { Test::Log::Abstraction::_args([a => 1]) } qr/\AParams::Get exploded\n\z/, 'die propagates';
 	restore_all();
 
-	mock_return "${CLASS}::get_params" => undef;
+	mock_return "Params::Get::get_params" => undef;
 	is_deeply(Test::Log::Abstraction::_args([a => 1]), {}, 'undef from Params::Get becomes {}');
 	restore_all();
 };
@@ -302,15 +302,15 @@ subtest '_validate: success and unknown keys' => sub {
 };
 
 subtest '_validate: every failure becomes invalid_argument' => sub {
-	mock "${CLASS}::validate_strict" => sub { die "Params::Validate::Strict line 9: validate_strict: Parameter 'x' is bad at /elsewhere/Foo.pm line 3.\n" };
+	mock "Params::Validate::Strict::validate_strict" => sub { die "Params::Validate::Strict line 9: validate_strict: Parameter 'x' is bad at /elsewhere/Foo.pm line 3.\n" };
 	throws_ok { Test::Log::Abstraction::_validate($CLASS, {}, {}) } croaked(q{invalid argument: Parameter 'x' is bad}), 'prefix and location stripped';
 	restore_all();
 
-	mock "${CLASS}::validate_strict" => sub { die { code => 42 } };
+	mock "Params::Validate::Strict::validate_strict" => sub { die { code => 42 } };
 	throws_ok { Test::Log::Abstraction::_validate($CLASS, {}, {}) } qr/\A\Q$CLASS: invalid argument: HASH(0x\E/, 'non-string exception still reported';
 	restore_all();
 
-	mock_return "${CLASS}::validate_strict" => undef;
+	mock_return "Params::Validate::Strict::validate_strict" => undef;
 	is_deeply(Test::Log::Abstraction::_validate($CLASS, {}, {}), {}, 'undef from the validator becomes {}');
 	restore_all();
 

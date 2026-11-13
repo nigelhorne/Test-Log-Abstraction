@@ -6,7 +6,7 @@ Test::Log::Abstraction - Capture log output in tests and assert on it
 
 =head1 VERSION
 
-0.002.1
+0.002.2
 
 =cut
 
@@ -442,21 +442,23 @@ unchanged.
 use 5.026;
 use strict;
 use warnings;
-use autodie qw(:all);
 
-use Carp qw(carp croak);
+# Nothing is imported as a function: anything defined in this package is a
+# method on every logger, and would answer a call that should reach
+# AUTOLOAD ($logger->croak('x') would croak, $logger->carp('x') warn)
+use Carp ();
 use Encode ();
 use Hash::Util ();
 use List::Util 1.33 ();
 use overload ();
-use Params::Get qw(get_params);
-use Params::Validate::Strict qw(validate_strict);
-use Readonly;
+use Params::Get ();
+use Params::Validate::Strict ();
+use Readonly ();
 use Readonly::Values::Syslog 0.04 qw(%SYSLOG_LEVELS);
 use Scalar::Util ();
 use Test::Builder ();
 
-use version; our $VERSION = version->declare('0.002.1');
+use version (); our $VERSION = version->declare('0.002.2');
 our $AUTOLOAD;
 
 # Routines whose names start with '_' are internal.  They are not checked
@@ -903,7 +905,7 @@ sub _args {
 	my $count = scalar(@{$args});
 	my $usable = (($count == 1) && (ref($args->[0]) eq 'HASH'))
 		|| ($count && !($count % 2) && !grep { !defined($args->[$_]) } grep { !($_ % 2) } 0 .. $count - 1);
-	my $params = $usable ? get_params(undef, $args) : undef;
+	my $params = $usable ? Params::Get::get_params(undef, $args) : undef;
 
 	return { %{$params || {}} };
 }
@@ -1029,7 +1031,7 @@ sub _validate {
 	# The caller's $@ must survive a successful check
 	local $@;
 	my $valid;
-	if(!eval { $valid = validate_strict(schema => $schema, input => $input, unknown_parameter_handler => 'ignore'); 1 }) {
+	if(!eval { $valid = Params::Validate::Strict::validate_strict(schema => $schema, input => $input, unknown_parameter_handler => 'ignore'); 1 }) {
 		# Keep the validator's explanation, but not its file and line,
 		# which point inside Params::Validate::Strict, not at the caller
 		# The validator may nest its own messages; keep only the innermost.
@@ -2652,7 +2654,7 @@ sub level {
 	} else {
 		# As in _croak(): Carp must not format the caller's arguments
 		local $Carp::MaxArgNums = -1;
-		carp($self->i18n('invalid_level', { level => _shown($name) }));
+		Carp::carp($self->i18n('invalid_level', { level => _shown($name) }));
 	}
 
 	# undef as a value, not an empty list, so it is undef in list context
@@ -3291,7 +3293,7 @@ sub _croak {
 	# that is not valid UTF-8: level($malformed) died inside Carp.  -1 tells
 	# it to format none, which changes nothing that a croak prints
 	local $Carp::MaxArgNums = -1;
-	croak($self->i18n($key, $args));
+	Carp::croak($self->i18n($key, $args));
 }
 
 =head1 LIMITATIONS
@@ -3334,9 +3336,8 @@ any code.  Nothing checks the caller: a test helper should not need
 compiled modules to do that.  Do not rely on them outside a subclass.
 
 =item * B<Many modules are needed.>  L<Params::Validate::Strict>,
-L<Params::Get>, L<Readonly>, L<Readonly::Values::Syslog>, and L<autodie>
-(with L<IPC::System::Simple>) must be installed, for what is a small test
-helper.  L<Object::Configure> is not used, because it loads
+L<Params::Get>, L<Readonly> and L<Readonly::Values::Syslog> must be
+installed, for what is a small test helper.  L<Object::Configure> is not used, because it loads
 L<Log::Abstraction>, and a test logger should not need that.
 
 =item * B<Simple translation system.>  L<Locale::Maketext> uses numbered

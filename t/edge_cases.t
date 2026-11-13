@@ -709,7 +709,7 @@ subtest 'PerlIO and Encode returning failure values' => sub {
 subtest 'validators returning failure values' => sub {
 	foreach my $failure (undef, 0, '') {
 		my $label = defined($failure) ? "'$failure'" : 'undef';
-		mock_return "${CLASS}::validate_strict" => $failure;
+		mock_return "Params::Validate::Strict::validate_strict" => $failure;
 		my $logger = eval { $CLASS->new(diag => 'none', lang => 'fr') };
 		restore_all();
 		isa_ok($logger, $CLASS, "validate_strict returning $label: still a logger");
@@ -717,12 +717,12 @@ subtest 'validators returning failure values' => sub {
 	}
 	foreach my $failure (undef, 0, '') {
 		my $label = defined($failure) ? "'$failure'" : 'undef';
-		mock_return "${CLASS}::get_params" => $failure;
+		mock_return "Params::Get::get_params" => $failure;
 		my $logger = eval { $CLASS->new(diag => 'none') };
 		restore_all();
 		isa_ok($logger, $CLASS, "get_params returning $label: still a logger, with defaults");
 	}
-	mock_exception "${CLASS}::validate_strict" => 'validator crashed';
+	mock_exception "Params::Validate::Strict::validate_strict" => 'validator crashed';
 	throws_ok { $CLASS->new() } qr/\A\Q$CLASS: invalid argument: validator crashed\E/, 'a validator that dies becomes our documented error';
 	restore_all();
 };

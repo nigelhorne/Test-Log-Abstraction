@@ -111,7 +111,7 @@ subtest '_args: 6 paths' => sub {
 	is_deeply(Test::Log::Abstraction::_args([undef, 1]), {}, 'P3 undefined key');
 	is_deeply(Test::Log::Abstraction::_args([1, 2, 3]), {}, 'P4 odd list');
 	is_deeply(Test::Log::Abstraction::_args([]), {}, 'P5 empty');
-	mock_return "${CLASS}::get_params" => undef;
+	mock_return "Params::Get::get_params" => undef;
 	is_deeply(Test::Log::Abstraction::_args([a => 1]), {}, 'P6 Params::Get returns undef');
 	restore_all();
 };
@@ -168,7 +168,7 @@ subtest '_validate: 3 paths' => sub {
 	my $schema = { a => { type => 'string' } };
 	is_deeply(Test::Log::Abstraction::_validate($CLASS, $schema, { a => 'x' }), { a => 'x' }, 'P1 valid');
 	throws_ok { Test::Log::Abstraction::_validate($CLASS, $schema, { a => [] }) } qr/\A\Q$CLASS: invalid argument: Parameter 'a'\E/, 'P2 invalid';
-	mock_return "${CLASS}::validate_strict" => undef;
+	mock_return "Params::Validate::Strict::validate_strict" => undef;
 	is_deeply(Test::Log::Abstraction::_validate($CLASS, $schema, {}), {}, 'P3 nothing returned');
 	restore_all();
 };

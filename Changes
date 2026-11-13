@@ -14,16 +14,13 @@ Revision history for Test-Log-Abstraction
 		differently on screen from what it says
 	- A character string that is not valid UTF-8 no longer makes printing
 		die or warn: it is printed with U+FFFD for each bad part
-	- t/function.t tests _escape() and _printable(), the bidi escaping in
-		_shown(), and that _record() and _explain() print through
-		_printable() while storing the original
-	- t/unit.t's ledger has the newly documented states: printed messages
-		and levels escaped, the stored message kept, C1 and malformed
-		UTF-8 when printing, bidi controls and the whole value in errors
-	- t/integration.t runs hostile upstream text through the importer:
-		stored as the real Log::Abstraction stores it, printed escaped,
-		and escaped for a subclass that replaces _emit()
 	[ Bug Fixes ]
+	- Calling carp, croak, get_params, validate_strict, qv or Readonly
+		on a logger no longer reaches the functions this module imported:
+		$logger->croak('x') died with a raw Test::Log::Abstraction=HASH
+		message and $logger->carp('x') warned.  Like any other unknown
+		method they now go to AUTOLOAD (stored, with a notice), and
+		t/autoload.t checks the package holds only documented methods
 	- like() and unlike() no longer warn on Perl 5.42 when given a
 		pattern that is a character string but not valid UTF-8.  5.42
 		reports the malformed bytes as plain warnings before the fatal
@@ -88,8 +85,17 @@ Revision history for Test-Log-Abstraction
 		10000000000000000000 instead of as written (1e+19): the range
 		checks cached an integer in the value, which perl then printed.
 		They now work on a copy.  Fixes GitHub#3
-	- t/function.t no longer expects 1e30 to be written '1e+30': with
-		quad-precision long doubles perl writes all 31 digits
+	[ Packaging ]
+	- autodie and IPC::System::Simple are no longer needed: the module
+		makes none of the calls autodie checks
+	- Log::Abstraction is recommended for testing, not required:
+		t/integration.t compares against it only when it is installed.
+		CI installs it with --with-recommends
+	- The licence in the META files is gpl_2, as the LICENSE file and
+		the POD say, not open_source
+	- overload, and the core modules the tests use (Config, File::Spec,
+		Test::More), are declared; Geo::IP is no longer a develop
+		requirement
 	[ Documentation ]
 	- STATE DIAGRAM: _emit called on a logger is listed with the calls
 		that do not change the state.  The _emit POD says the message is
@@ -107,6 +113,19 @@ Revision history for Test-Log-Abstraction
 		as written" is shown as perl writes it, which depends on how
 		perl was built (1e+30, or all 31 digits with long doubles)
 	[ Internal ]
+	- Tests that replace Params::Get or Params::Validate::Strict now mock
+		those modules' own functions, since nothing is imported any more
+	- t/function.t tests _escape() and _printable(), the bidi escaping in
+		_shown(), and that _record() and _explain() print through
+		_printable() while storing the original
+	- t/unit.t's ledger has the newly documented states: printed messages
+		and levels escaped, the stored message kept, C1 and malformed
+		UTF-8 when printing, bidi controls and the whole value in errors
+	- t/integration.t runs hostile upstream text through the importer:
+		stored as the real Log::Abstraction stores it, printed escaped,
+		and escaped for a subclass that replaces _emit()
+	- t/function.t no longer expects 1e30 to be written '1e+30': with
+		quad-precision long doubles perl writes all 31 digits
 	- t/transition.t checks that the POD, the STATE DIAGRAM and the code
 		agree: the diagram's states, a place in it for every documented
 		method, a real method for every call it names, and no clock reads
