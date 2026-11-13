@@ -91,6 +91,10 @@ Revision history for Test-Log-Abstraction
 	- t/function.t no longer expects 1e30 to be written '1e+30': with
 		quad-precision long doubles perl writes all 31 digits
 	[ Documentation ]
+	- STATE DIAGRAM: _emit called on a logger is listed with the calls
+		that do not change the state.  The _emit POD says the message is
+		stored before _emit is called, so a replacement that dies loses
+		nothing
 	- The API SPECIFICATION domains now cover the encoding of names and
 		patterns (malformed text and surrogates are never level names;
 		character and byte patterns never match each other's text),
@@ -103,6 +107,14 @@ Revision history for Test-Log-Abstraction
 		as written" is shown as perl writes it, which depends on how
 		perl was built (1e+30, or all 31 digits with long doubles)
 	[ Internal ]
+	- t/transition.t checks that the POD, the STATE DIAGRAM and the code
+		agree: the diagram's states, a place in it for every documented
+		method, a real method for every call it names, and no clock reads
+		(there are no temporal edges).  Every documented method is run
+		from both states and checked against its role.  New subtests: a
+		replacement _emit that dies (the message is kept, once), a message
+		that logs while it is read, and a frozen clock warped a decade
+		forward (nothing expires).  It no longer prints a stray "# payload"
 	- t/logic.t proves the decisions added in this release: truth tables
 		for _is_a(), _repaired(), the read loop of _entry() (all 8 rows of
 		three arguments, each read once), _stringify(), and the claimed-

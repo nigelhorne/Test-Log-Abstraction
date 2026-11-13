@@ -2863,6 +2863,10 @@ too.  A Perl character string is
 encoded as UTF-8 first, unless the output already has an encoding layer
 (see L</ENCODING>).
 
+A level method stores its message before it calls C<_emit>.  So if a
+replacement C<_emit> dies, the message is still captured, and the error
+reaches the code that logged.
+
 =head3 EXAMPLE
 
     package My::Logger;
@@ -3727,6 +3731,7 @@ and so on) never change the state.
       count, messages, lang, is_trace ... is_emergency, flush, reopen,
       i18n
                                 [return a value only]
+      _emit                     [print the text; return the logger]
       DESTROY() called directly [does nothing; the logger stays]
       like(undef), has_level(undef), a bad argument, or any method
       called on something that is not a logger (the class name, undef,
