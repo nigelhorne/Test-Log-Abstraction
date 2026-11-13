@@ -24,6 +24,12 @@ Revision history for Test-Log-Abstraction
 		stored as the real Log::Abstraction stores it, printed escaped,
 		and escaped for a subclass that replaces _emit()
 	[ Bug Fixes ]
+	- like() and unlike() no longer warn on Perl 5.42 when given a
+		pattern that is a character string but not valid UTF-8.  5.42
+		reports the malformed bytes as plain warnings before the fatal
+		error, despite FATAL warnings; any warning while compiling a
+		pattern is now the error, so every version croaks with the same
+		detailed reason and nothing reaches the caller
 	- A failing like(), unlike(), has_level() or empty() inside a subtest
 		was reported at a line inside Test::Builder, not at the line
 		that called it: $Test::Builder::Level was raised by one frame too
@@ -58,6 +64,16 @@ Revision history for Test-Log-Abstraction
 		read a second time, so a tied argument that changes on every read
 		was stored as its second value.  Each argument is now read exactly
 		once, in order
+	- An element of a tied array or hash whose FETCH dies, passed as a log
+		argument, vanished from the message, and logging warned "Use of
+		uninitialized value" from overload.pm: such an element has no tie
+		object of its own.  It is now shown as the plain form of a
+		reference to it, such as SCALAR(0x...)
+	- An argument such as substr($s, 10), which perl evaluates only when
+		it is read, made logging warn "substr outside of string" at the
+		module's line.  It is now read silently, as undef.  Both found by
+		t/path.t, which maps every path of the new code and again reaches
+		every statement, branch and condition on its own
 	- A misspelt method (AUTOLOAD) copied its arguments outside any eval,
 		so a tied argument whose FETCH dies still killed the call.  It
 		now passes them on unread.  t/data-flow.t traces both, and checks
@@ -96,6 +112,13 @@ Revision history for Test-Log-Abstraction
 		a level name (only the Kelvin sign becomes ASCII, as 'k').  The
 		invariant and contradiction tables have rows for the new
 		hostile inputs
+	- t/transaction.t has the sequences added in this release: a log call
+		whose arguments die part way through the read (one entry, each
+		argument once and in order), a misspelt method failed at each of
+		its steps, the new steps of new() and of a clone failed in turn,
+		a tied argument that logs, clears, clones or changes the level of
+		the same logger while it is read, and hostile calls repeated.  It
+		now fails on any warning (Test::Warnings)
 	- level() answers a query (no argument) before making a lookup key,
 		and _plural() returns 'other' and 'zero' without looking them up
 		again; behaviour is unchanged.  t/logic.t proves both reductions

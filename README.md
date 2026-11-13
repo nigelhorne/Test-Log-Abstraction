@@ -616,8 +616,12 @@ combining marks, right-to-left text, zero-width characters) or bytes; it
 is stored with its length unchanged.  See ["ENCODING"](#encoding) for how it is
 printed.  Hashes and arrays are rendered to any depth, in time linear in
 their size.  A part that cannot be read (a tied value whose FETCH dies) is
-shown as its tie object's plain form, and a reference that is not really
-the type it claims, such as bless({}, 'ARRAY'), in Perl's plain form.
+shown as its tie object's plain form; an element of a tied array or hash
+has no tie object of its own, so it is shown as the plain form of a
+reference to it, such as SCALAR(0x...).  An argument such as
+substr($s, 10) that is out of range is undef, with no warning.  A
+reference that is not really the type it claims, such as
+bless({}, 'ARRAY'), is shown in Perl's plain form.
 
 ##### Output
 

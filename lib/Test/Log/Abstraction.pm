@@ -1426,8 +1426,12 @@ combining marks, right-to-left text, zero-width characters) or bytes; it
 is stored with its length unchanged.  See L</ENCODING> for how it is
 printed.  Hashes and arrays are rendered to any depth, in time linear in
 their size.  A part that cannot be read (a tied value whose FETCH dies) is
-shown as its tie object's plain form, and a reference that is not really
-the type it claims, such as bless({}, 'ARRAY'), in Perl's plain form.
+shown as its tie object's plain form; an element of a tied array or hash
+has no tie object of its own, so it is shown as the plain form of a
+reference to it, such as SCALAR(0x...).  An argument such as
+substr($s, 10) that is out of range is undef, with no warning.  A
+reference that is not really the type it claims, such as
+bless({}, 'ARRAY'), is shown in Perl's plain form.
 
 =head4 Output
 
@@ -1592,11 +1596,21 @@ sub _entry {
 	# one argument at a time, inside one eval for the usual case; push()
 	# appends nothing when the read dies, so after a failure @args holds
 	# exactly the arguments already read, and the copy resumes after the
-	# one that died, which is shown as its tie object's plain form
+	# one that died, which is shown as its tie object's plain form.  An
+	# element of a tied array or hash has no tie object of its own, so it
+	# is shown as the plain form of a reference to it: undef would warn in
+	# overload::StrVal(), and the part would vanish from the message
+	# An argument such as substr($s, 10) is only evaluated when it is read,
+	# here, and warns "substr outside of string" at this line; the mistake
+	# is the caller's, and logging must not warn, so the read is silent and
+	# the part is undef, shown as 'undef'.  Nothing after this in the
+	# routine uses substr()
+	no warnings 'substr';	## no critic (ProhibitNoWarnings)
 	my @args;
 	while(@args < @{$args}) {
 		last if(eval { push @args, $args->[$_] foreach scalar(@args) .. $#{$args}; 1 });
-		push @args, overload::StrVal(tied($args->[scalar(@args)]));
+		my $tie = tied($args->[scalar(@args)]);
+		push @args, overload::StrVal(defined($tie) ? $tie : \$args->[scalar(@args)]);
 	}
 
 	# A trailing plain hash after the message is structured fields.  A tied
@@ -2382,8 +2396,9 @@ sub _checked {
 # Exit:         Returns the compiled regular expression.
 # Side effects: Croaks with 'invalid_argument' if the pattern does not
 #               compile, contains code, can never match, or is a character
-#               string that is not valid UTF-8.  Leaves $@ alone
-#               otherwise.
+#               string that is not valid UTF-8.  Never warns: a warning
+#               while compiling is the error.  Leaves $@ and
+#               $SIG{__WARN__} alone otherwise.
 sub _regex {
 	my ($self, $pattern) = @_;
 
@@ -2392,9 +2407,17 @@ sub _regex {
 	# the caller's error and not a crash or a stray warning.  'utf8' makes a
 	# character string that is not valid UTF-8 the caller's error too, rather
 	# than a stream of warnings and a pattern with unknown meaning; valid
-	# text, even a surrogate or a non-character, compiles without a warning
+	# text, even a surrogate or a non-character, compiles without a warning.
+	# Perl 5.42 reports malformed UTF-8 as plain warnings before the fatal
+	# one, whatever the lexical FATAL says; so any warning during the
+	# compile becomes the error too, and the first, most detailed, is the
+	# reason on every version
 	local $@;	# the caller's $@ must survive a good pattern
-	my $regex = eval { use warnings FATAL => qw(regexp utf8); qr/$pattern/ };
+	my $regex = eval {
+		use warnings FATAL => qw(regexp utf8);
+		local $SIG{__WARN__} = \&CORE::die;
+		qr/$pattern/;
+	};
 	$self->_croak('invalid_argument', { reason => _reason($@) }) if(!defined($regex));
 
 	return $regex;
