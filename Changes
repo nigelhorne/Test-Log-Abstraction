@@ -14,6 +14,9 @@ Revision history for Test-Log-Abstraction
 		differently on screen from what it says
 	- A character string that is not valid UTF-8 no longer makes printing
 		die or warn: it is printed with U+FFFD for each bad part
+	- t/function.t tests _escape() and _printable(), the bidi escaping in
+		_shown(), and that _record() and _explain() print through
+		_printable() while storing the original
 	[ Bug Fixes ]
 	- An invalid argument whose value contains "validate_strict:", such as
 		lang => 'x validate_strict: y', is reported in full: the error
