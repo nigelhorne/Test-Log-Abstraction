@@ -158,7 +158,7 @@
 
 <tbody>
 
-<tr class="high"><td><a href="blib-lib-Test-Log-Abstraction-pm.html" title="View coverage line by line" target="_blank">lib/Test/Log/Abstraction.pm</a> <a href="https://github.com/nigelhorne/Test-Log-Abstraction/blob/587717cd6b071e21efdc26f3e3aebdc0d395e70b/lib/Test/Log/Abstraction.pm" class="icon-link" title="View source on GitHub">&#128269;</a><canvas class="sparkline" width="80" height="20" data-points="100.0,100.0,100.0,99.6,99.6,99.6,99.7"></canvas></td><td>100.0</td><td>100.0</td><td>100.0</td><td>100.0</td><td><span class="coverage-badge badge-good" title="Excellent coverage">100.0%</span></td><td class="positive" title="Previous: 99.7%">&#9650; 0.3%</td></tr>
+<tr class="high"><td><a href="blib-lib-Test-Log-Abstraction-pm.html" title="View coverage line by line" target="_blank">lib/Test/Log/Abstraction.pm</a> <a href="https://github.com/nigelhorne/Test-Log-Abstraction/blob/1e72e00c8896c6141877582a70741acb24b51895/lib/Test/Log/Abstraction.pm" class="icon-link" title="View source on GitHub">&#128269;</a><canvas class="sparkline" width="80" height="20" data-points="100.0,100.0,100.0,99.6,99.6,99.6,99.7,100.0"></canvas></td><td>100.0</td><td>100.0</td><td>100.0</td><td>100.0</td><td><span class="coverage-badge badge-good" title="Excellent coverage">100.0%</span></td><td class="neutral" title="Previous: 100.0%">&#9679; 0.0%</td></tr>
 <tr class="summary-row nosort"><td colspan="2"><strong>Summary</strong></td><td colspan="2">1 files</td><td colspan="3">Avg: 100%, Low: 0</td></tr>
 <tr class="high nosort"><td><strong>Total</strong></td><td>100.0</td><td>100.0</td><td>100.0</td><td>100.0</td><td colspan="2"><strong>100.0</strong></td></tr>
 </tbody></table>
@@ -211,8 +211,9 @@ const dataPoints = [ { x: "2026-10-10T11:34:58-04:00", y: 100, delta: 0, url: "h
 { x: "2026-10-10T16:47:58-04:00", y: 100, delta: 0.0, url: "https://github.com/nigelhorne/Test-Log-Abstraction/commit/dc8f6480d64e8fc0e6f7915c63fcc4fda4e112f8", label: "2026-10-10T16:47:58-04:00", pointBackgroundColor: "gray", comment: "Fix mutant" },
 { x: "2026-10-10T18:19:57-04:00", y: 99.6389891696751, delta: -0.4, url: "https://github.com/nigelhorne/Test-Log-Abstraction/commit/8853daa70e8c69440c4d206fe0043650d2d1603b", label: "2026-10-10T18:19:57-04:00", pointBackgroundColor: "red", comment: "Added transaction tests" },
 { x: "2026-10-10T19:14:34-04:00", y: 99.6389891696751, delta: 0.0, url: "https://github.com/nigelhorne/Test-Log-Abstraction/commit/66ee2a96b13c967d8c908d2406ac3a3ae01454d0", label: "2026-10-10T19:14:34-04:00", pointBackgroundColor: "gray", comment: "Redid state diagram" },
-{ x: "2026-10-27T11:37:14-04:00", y: 49.8613037447989, delta: -49.8, url: "https://github.com/nigelhorne/Test-Log-Abstraction/commit/c9d233011431f66767b4f131283847815337a78c", label: "2026-10-27T11:37:14-04:00", pointBackgroundColor: "red", comment: "Fix https://github.com/nigelhorne/Test-Log-Abstraction/issues/2" },
-{ x: "2026-10-27T19:01:44+00:00", y: 100, delta: 50.1, url: "https://github.com/nigelhorne/Test-Log-Abstraction/commit/587717cd6b071e21efdc26f3e3aebdc0d395e70b", label: "2026-10-27T19:01:44+00:00", pointBackgroundColor: "green", comment: "Release 0.002.1" } ];
+{ x: "2026-10-27T11:37:14-04:00", y: 99.7226074895978, delta: 0.1, url: "https://github.com/nigelhorne/Test-Log-Abstraction/commit/c9d233011431f66767b4f131283847815337a78c", label: "2026-10-27T11:37:14-04:00", pointBackgroundColor: "green", comment: "Fix https://github.com/nigelhorne/Test-Log-Abstraction/issues/2" },
+{ x: "2026-10-27T14:56:19-04:00", y: 50, delta: -49.7, url: "https://github.com/nigelhorne/Test-Log-Abstraction/commit/587717cd6b071e21efdc26f3e3aebdc0d395e70b", label: "2026-10-27T14:56:19-04:00", pointBackgroundColor: "red", comment: "Release 0.002.1" },
+{ x: "2026-11-13T14:11:29+00:00", y: 100, delta: 50.0, url: "https://github.com/nigelhorne/Test-Log-Abstraction/commit/1e72e00c8896c6141877582a70741acb24b51895", label: "2026-11-13T14:11:29+00:00", pointBackgroundColor: "green", comment: "More white box tests" } ];
 const regressionPoints = linearRegression(dataPoints);
 // Try to register the zoom plugin (handles different UMD builds)
 (function registerZoomPlugin(){
@@ -683,7 +684,7 @@ function refresh(){
 
 <p><center>Use mouse wheel or pinch to zoom; drag to pan</center></p>
 <p>No issues active on <a href="https://rt.cpan.org/Public/Dist/Display.html?Name=Test-Log-Abstraction">RT</a></p>
-<h2>CPAN Testers Failures for Test-Log-Abstraction 0.002.0</h2>
+<h2>CPAN Testers Failures for Test-Log-Abstraction 0.002.1</h2>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 	const toggleFail = document.getElementById('toggleFail');
@@ -767,252 +768,174 @@ document.addEventListener("DOMContentLoaded", function () {
 </thead>
 <tbody>
 
-<tr class="cpan-fail"><td>2026-10-11T09:30:00Z</td><td>freebsd</td><td>5.44.0</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/5ca2491c-c556-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-13T12:43:00Z</td><td>linux</td><td>5.38.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/a277864c-c703-11f1-87f5-97f2eb1e45d4" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-11T21:10:00Z</td><td>linux</td><td>5.24.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/284d4c04-c5b8-11f1-82d2-9cb4e9017d73" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-24T13:41:00Z</td><td>linux</td><td>5.26.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/a91c3640-cfb0-11f1-ab4b-cf9bb3a6995f" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-11T21:09:00Z</td><td>linux</td><td>5.24.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/1ccceca4-c5b8-11f1-bfe1-dc8663086331" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-25T21:46:00Z</td><td>linux</td><td>5.40.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/90cea2b8-d0bd-11f1-87ec-9cd68ebe714a" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-21T19:46:00Z</td><td>linux</td><td>5.40.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/1f24170c-cd88-11f1-8130-8a665e78e4cf" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-24T12:53:00Z</td><td>linux</td><td>5.40.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/e4c7dfc0-cfa9-11f1-a264-b449a91817f1" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-25T19:48:00Z</td><td>linux</td><td>5.20.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/fda86768-d0ac-11f1-a400-da39ffbca377" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T09:26:00Z</td><td>linux</td><td>5.38.2</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/dbf2ebe6-c555-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-20T22:13:00Z</td><td>linux</td><td>5.45.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/8020655c-ccd3-11f1-8f3b-cf3d1481a80e" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-21T00:09:00Z</td><td>linux</td><td>5.36.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/bdb835ce-cce3-11f1-b953-ae234c755347" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-14T20:24:00Z</td><td>linux</td><td>5.38.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/50034d14-c80d-11f1-8ef2-83cc4b07f1e4" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-13T12:28:00Z</td><td>linux</td><td>5.38.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/9d5ac6bc-c701-11f1-86b7-e3d7439e601a" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T00:09:00Z</td><td>linux</td><td>5.36.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/0a841792-c9bf-11f1-8c0b-9f0edf300495" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-24T13:49:00Z</td><td>linux</td><td>5.12.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/b2cc9274-cfb1-11f1-b422-92cc91b0605f" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-14T21:43:00Z</td><td>linux</td><td>5.22.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/59b5b0b2-c818-11f1-abaf-96cb7925a51f" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-24T13:20:00Z</td><td>linux</td><td>5.30.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/a7af1960-cfad-11f1-8aef-91ba92fa0ec5" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T22:21:00Z</td><td>linux</td><td>5.30.3</td><td>David Cantrell (DCANTRELL)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/1f14c1f8-c5c2-11f1-a412-a59881090035" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-11T21:11:00Z</td><td>linux</td><td>5.14.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/4854d1d4-c5b8-11f1-a287-9e04ea85a25e" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-14T20:34:00Z</td><td>linux</td><td>5.40.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/b0b2df5c-c80e-11f1-983e-f91d8002e069" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T20:54:00Z</td><td>linux</td><td>5.45.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/fe356750-c5b5-11f1-93e7-8cd169b3c141" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-13T12:56:00Z</td><td>linux</td><td>5.28.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/86292f70-c705-11f1-98cf-bb79e68a9eb2" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-20T22:55:00Z</td><td>linux</td><td>5.45.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/51edd920-ccd9-11f1-a772-97bc295c0ade" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-25T21:49:00Z</td><td>linux</td><td>5.40.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/0214a058-d0be-11f1-963a-f0031b7da648" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-24T07:41:00Z</td><td>linux</td><td>5.45.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/5f59e3ea-cf7e-11f1-b27f-9fc22735e4f5" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T10:16:00Z</td><td>linux</td><td>5.36.3</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/cfc60892-c55c-11f1-ad2e-fae66d8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T09:35:00Z</td><td>linux</td><td>5.38.5</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/114ffbf2-c557-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-17T11:58:00Z</td><td>linux</td><td>5.20.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/0d3fd300-ca22-11f1-a1c4-c6862dfbecea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-18T21:55:00Z</td><td>linux</td><td>5.38.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/a8cfdfbe-cb3e-11f1-9bb0-f4e4fccede6f" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-13T11:34:00Z</td><td>linux</td><td>5.32.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/1985d568-c6fa-11f1-adf2-b9b245185899" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T09:33:00Z</td><td>linux</td><td>5.42.0</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/d67ea4b0-c556-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-12T22:43:00Z</td><td>linux</td><td>5.32.1</td><td>David Cantrell (DCANTRELL)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/689d66d2-c68e-11f1-ba18-ade90229d0e9" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-14T21:20:00Z</td><td>linux</td><td>5.26.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/24c8880a-c815-11f1-997f-8f231ffa2232" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-14T21:52:00Z</td><td>linux</td><td>5.12.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/8ed4ced0-c819-11f1-a266-ea0ccae13b10" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T11:43:00Z</td><td>linux</td><td>5.38.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/048273c8-ca20-11f1-b0bf-ffb0a9611bf7" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T20:52:00Z</td><td>linux</td><td>5.45.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/b7665f78-c5b5-11f1-a42e-f11520a5b97b" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-11T21:11:00Z</td><td>linux</td><td>5.12.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/573734a8-c5b8-11f1-94da-8e582fba74cd" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T16:20:00Z</td><td>linux</td><td>5.36.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/ba141a04-ca46-11f1-85b0-acff4dd6639d" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-11T21:10:00Z</td><td>linux</td><td>5.16.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/37413f72-c5b8-11f1-93c7-e361d29ebc8d" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T20:19:00Z</td><td>linux</td><td>5.30.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/fd8dc048-ca67-11f1-8a91-ee9b1a34767b" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T11:40:00Z</td><td>linux</td><td>5.38.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/9895f838-ca1f-11f1-8445-aa8deeb2832d" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-16T07:49:00Z</td><td>linux</td><td>5.38.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/10d4bb3a-c936-11f1-85eb-8f106c433ebd" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-25T22:05:00Z</td><td>linux</td><td>5.10.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/1f619524-d0c0-11f1-b081-80cc89a56907" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T09:31:00Z</td><td>freebsd</td><td>5.38.5</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/8269f32a-c556-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T21:09:00Z</td><td>linux</td><td>5.26.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/0ea7b4b0-c5b8-11f1-b280-af2f437cf0d2" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T21:03:00Z</td><td>linux</td><td>5.34.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/3d87bbd2-c5b7-11f1-91d9-d1ecd7aa7169" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T06:36:00Z</td><td>linux</td><td>5.44.0</td><td>gregor herrmann</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/122cb72c-c53e-11f1-8548-af6b9e944e0f" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T09:32:00Z</td><td>linux</td><td>5.40.5</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/ba80e084-c556-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-21T20:54:00Z</td><td>linux</td><td>5.34.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/aa6354fa-cd91-11f1-8e60-9a7a5aaf0546" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T15:33:00Z</td><td>linux</td><td>5.44.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/0a33308a-ca40-11f1-b1bb-e9542ea3d2b6" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T11:52:00Z</td><td>linux</td><td>5.36.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/3907d8da-ca21-11f1-a575-c2be14b05e9c" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-14T21:30:00Z</td><td>linux</td><td>5.22.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/8ae137e4-c816-11f1-a761-87edaadf5033" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-20T12:30:00Z</td><td>linux</td><td>5.38.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/15f0e96e-cc82-11f1-b059-bb7336251d94" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-13T13:08:00Z</td><td>linux</td><td>5.24.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/3d4af28c-c707-11f1-a1a4-bca1b4564e14" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-12T23:59:00Z</td><td>linux</td><td>5.20.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/07de240c-c699-11f1-bbeb-86860ee8dd3f" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-13T11:53:00Z</td><td>linux</td><td>5.18.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/b4275d9c-c6fc-11f1-bcd6-a883978ebb55" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-25T18:56:00Z</td><td>linux</td><td>5.42.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/d89c7ca4-d0a5-11f1-a871-810275c98749" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-24T09:59:00Z</td><td>linux</td><td>5.44.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/aa382e68-cf91-11f1-b28d-f08384c7e8c5" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-16T06:52:00Z</td><td>linux</td><td>5.40.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/1ed4235e-c92e-11f1-8688-e7156a76254c" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-17T21:12:00Z</td><td>linux</td><td>5.8.8</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/7ec4a274-ca6f-11f1-93bc-e28508906eb7" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-25T22:02:00Z</td><td>linux</td><td>5.18.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/ca000cc8-d0bf-11f1-9fe0-de49e158fb2f" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-16T07:33:00Z</td><td>linux</td><td>5.40.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/e706ae50-c933-11f1-8e94-f034b7241246" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-21T18:16:00Z</td><td>linux</td><td>5.45.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/7b9e3e52-cd7b-11f1-87cc-9393887e20d5" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-20T10:40:00Z</td><td>linux</td><td>5.42.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/a1b350dc-cc72-11f1-b462-e727e12629bd" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T20:59:00Z</td><td>linux</td><td>5.38.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/ab76e984-c5b6-11f1-8b3b-b4853afa9afa" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T19:37:00Z</td><td>linux</td><td>5.44.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/2d8c9a40-ca62-11f1-95a7-f24f52765a93" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-14T17:00:00Z</td><td>linux</td><td>5.38.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/b3eb1ed2-c7f0-11f1-8acd-b7f2f8804f10" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T19:59:00Z</td><td>linux</td><td>5.40.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/4f1e34cc-ca65-11f1-b819-a3859133acf3" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-11T01:32:00Z</td><td>linux</td><td>5.18.4</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/9302bec6-c513-11f1-8d54-7d2f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-27T15:04:00Z</td><td>linux</td><td>5.45.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/b9290270-d217-11f1-b0f5-c463781dfd33" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T11:55:00Z</td><td>linux</td><td>5.34.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/958db264-ca21-11f1-b995-bcf5c23743da" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-14T21:10:00Z</td><td>linux</td><td>5.32.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/b07cf2e8-c813-11f1-97ad-b63e7147303f" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T11:38:00Z</td><td>linux</td><td>5.38.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/476f3064-ca1f-11f1-b375-9c16a5725ed0" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T19:48:00Z</td><td>linux</td><td>5.38.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/b4893c00-ca63-11f1-868f-9ab2ae6f7a4b" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-20T12:05:00Z</td><td>linux</td><td>5.40.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/88efe090-cc7e-11f1-a7b4-8ced3cdc97d6" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T20:57:00Z</td><td>linux</td><td>5.42.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/4f90ee12-c5b6-11f1-a887-bbcd0ba041ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-25T21:56:00Z</td><td>linux</td><td>5.34.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/f2b20b18-d0be-11f1-902a-a8242d35c174" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-16T23:37:00Z</td><td>linux</td><td>5.42.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/8a457aca-c9ba-11f1-b92c-80f0ccbef912" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T09:34:00Z</td><td>linux</td><td>5.42.2</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/ea54eb7a-c556-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-13T13:18:00Z</td><td>linux</td><td>5.24.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/97e2f40a-c708-11f1-8f21-a4d0482f42fe" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T03:03:00Z</td><td>linux</td><td>5.32.1</td><td>David Solimano</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/5a69bdaa-c520-11f1-accb-8ced89f5d4f5" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-12T22:43:00Z</td><td>linux</td><td>5.32.1</td><td>David Cantrell (DCANTRELL)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/56e765e6-c68e-11f1-8076-dcc6e24a5426" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-17T20:27:00Z</td><td>linux</td><td>5.22.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/2e4bcfa8-ca69-11f1-8301-8b887cd8390b" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-13T11:38:00Z</td><td>linux</td><td>5.30.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/aa71085e-c6fa-11f1-bdd9-ccb60e97e0f5" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-27T02:56:00Z</td><td>linux</td><td>5.32.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/06d67dba-d1b2-11f1-98a9-885eb89e40e8" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T09:33:00Z</td><td>linux</td><td>5.44.0</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/e119727e-c556-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-16T23:57:00Z</td><td>linux</td><td>5.40.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/5db782de-c9bd-11f1-9111-bfca38b119e7" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-25T21:58:00Z</td><td>linux</td><td>5.28.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/4489d77c-d0bf-11f1-932c-fa1487a3c5d0" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-12T22:21:00Z</td><td>linux</td><td>5.32.1</td><td>David Cantrell (DCANTRELL)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/522c90e2-c68b-11f1-936e-ff81e5035c2e" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-14T17:25:00Z</td><td>linux</td><td>5.22.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/3a42fd8a-c7f4-11f1-a903-bc4a6e5f0d14" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-12T23:08:00Z</td><td>linux</td><td>5.44.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/d58f2c3c-c691-11f1-9567-f0b3da720379" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T14:44:00Z</td><td>linux</td><td>5.40.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/5336901c-ca39-11f1-a696-96bb76f19679" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T21:05:00Z</td><td>linux</td><td>5.28.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/73045464-c5b7-11f1-877d-95e95fde739c" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-14T17:14:00Z</td><td>linux</td><td>5.26.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/c6204b52-c7f2-11f1-a894-92095ebe951c" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-20T23:23:00Z</td><td>linux</td><td>5.40.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/38b99742-ccdd-11f1-a5d0-8383dca72fd8" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-17T11:59:00Z</td><td>linux</td><td>5.20.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/2f6a8f56-ca22-11f1-b241-915f4c795c8d" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-25T19:29:00Z</td><td>linux</td><td>5.42.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/5523b6da-d0aa-11f1-80fd-d2a2202010f3" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-13T11:30:00Z</td><td>linux</td><td>5.36.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/7a38781c-c6f9-11f1-bb43-e7f767e0787a" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-14T16:43:00Z</td><td>linux</td><td>5.40.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/67ae8c72-c7ee-11f1-a1a5-cecb02fcb6b7" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-12T22:32:00Z</td><td>linux</td><td>5.42.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/c4b2994e-c68c-11f1-8c88-c594c7e3341f" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-11T10:15:00Z</td><td>linux</td><td>5.12.5</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/abb946da-c55c-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-12T23:31:00Z</td><td>linux</td><td>5.40.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/10ca3ece-c695-11f1-88f6-f734d95300c5" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-14T19:39:00Z</td><td>linux</td><td>5.45.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/f3cbcfe0-c806-11f1-a695-c60f06d0e8be" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T09:32:00Z</td><td>freebsd</td><td>5.40.4</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/a38a78cc-c556-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-17T12:01:00Z</td><td>linux</td><td>5.14.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/7f92eec4-ca22-11f1-97a9-bc0231b41e64" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T21:01:00Z</td><td>linux</td><td>5.42.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/f8dc3c88-c5b6-11f1-81ea-8904d1563890" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-11T10:15:00Z</td><td>linux</td><td>5.14.4</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/a7fd325e-c55c-11f1-acd7-1c3f6e8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-17T11:47:00Z</td><td>linux</td><td>5.40.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/85341940-ca20-11f1-9d8f-e32d041b8917" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-26T01:50:00Z</td><td>linux</td><td>5.40.0</td><td>Nigel Horne</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/959dedea-d0df-11f1-a2d7-b7f79278e5be" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-13T11:55:00Z</td><td>linux</td><td>5.16.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/f897b86e-c6fc-11f1-b24c-8268929f7b97" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-13T13:04:00Z</td><td>linux</td><td>5.26.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/91964b9e-c706-11f1-b986-8338abb26fcb" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-13T13:00:00Z</td><td>linux</td><td>5.28.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/21121ab0-c706-11f1-a1e2-8f285747815f" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-12T22:15:00Z</td><td>linux</td><td>5.32.1</td><td>David Cantrell (DCANTRELL)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/6d1003cc-c68a-11f1-88eb-ceacc9de6306" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T20:57:00Z</td><td>linux</td><td>5.42.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/66b155f0-c5b6-11f1-9055-f3ce5a0f9953" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-13T11:46:00Z</td><td>linux</td><td>5.22.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/ba6aea44-c6fb-11f1-b3dc-b172ed5511ac" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-16T11:54:00Z</td><td>linux</td><td>5.44.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/6197ad9e-c958-11f1-b634-8e6153d37cd5" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T21:07:00Z</td><td>linux</td><td>5.28.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/cec7e6da-c5b7-11f1-9bf1-f4a7743eb068" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T22:22:00Z</td><td>linux</td><td>5.30.3</td><td>David Cantrell (DCANTRELL)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/4a68af68-c5c2-11f1-8702-ca0882090035" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-na"><td>2026-10-17T20:44:00Z</td><td>linux</td><td>5.20.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/81877f62-ca6b-11f1-8ab9-904f24fa7c9d" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-21T20:32:00Z</td><td>linux</td><td>5.36.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/8395a9b6-cd8e-11f1-a9b6-f46a0cbdf347" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-11T10:15:00Z</td><td>linux</td><td>5.40.3</td><td>Slaven Rezi&#x107;</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/be271aea-c55c-11f1-ad2e-fae66d8775ea" target="_blank">View</a></td><td></td></tr>
-<tr class="cpan-fail"><td>2026-10-14T20:48:00Z</td><td>linux</td><td>5.40.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
-				<td><a href="https://www.cpantesters.org/cpan/report/96458bcc-c810-11f1-897e-a36f6c3f2edb" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-06T22:57:00Z</td><td>linux</td><td>5.36.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/818ec0e0-da35-11f1-a4cc-8900206d705c" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-29T14:59:00Z</td><td>linux</td><td>5.34.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/644e956a-d3a9-11f1-af5d-defdd5b4f9a3" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-04T12:30:00Z</td><td>linux</td><td>5.42.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/75e179ea-d84b-11f1-83cc-f8552b369939" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-05T22:10:00Z</td><td>linux</td><td>5.40.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/ad98ea6a-d965-11f1-8938-d34dac45299a" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-03T21:47:00Z</td><td>linux</td><td>5.24.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/2b714eb0-d7d0-11f1-872c-9c694a93034b" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T16:24:00Z</td><td>linux</td><td>5.28.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/0963d344-d2ec-11f1-aef2-bbee9ce21b49" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-01T18:02:00Z</td><td>freebsd</td><td>5.44.0</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/71ae63da-d61e-11f1-89a7-f6286e8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-31T13:29:00Z</td><td>linux</td><td>5.45.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/22ad6be0-d52f-11f1-ba78-bd1e8ef2d8e4" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-05T20:49:00Z</td><td>linux</td><td>5.45.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/759e4782-d95a-11f1-a755-bdb678cbddbf" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-06T23:31:00Z</td><td>linux</td><td>5.20.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/20ca98f6-da3a-11f1-b546-a1fa36e9e1ca" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-03T22:08:00Z</td><td>linux</td><td>5.12.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/173bfcd0-d7d3-11f1-ac06-dff8f9fa2f8e" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-29T20:19:00Z</td><td>linux</td><td>5.44.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/10e9447e-d3d6-11f1-b99d-b4ccba1dc247" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-03T16:55:00Z</td><td>linux</td><td>5.40.0</td><td>Nigel Horne</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/715f15c0-d7a7-11f1-9bb6-e367498693b4" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-02T19:49:00Z</td><td>linux</td><td>5.42.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/7e08d786-d6f6-11f1-8d4a-f5ac61510b79" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-03T20:27:00Z</td><td>linux</td><td>5.42.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/fecd0dbe-d7c4-11f1-b55b-a531bd02e6b4" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-02T20:57:00Z</td><td>linux</td><td>5.18.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/fe590466-d6ff-11f1-a2bb-d462047de02d" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-30T23:43:00Z</td><td>linux</td><td>5.42.0</td><td>Chris Williams (BINGOS)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/b901b8e0-d4bb-11f1-a3bc-a055f9c4ba34" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-10-28T11:23:00Z</td><td>linux</td><td>5.18.4</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/fb7592ce-d2c1-11f1-9836-84136e8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-30T01:48:00Z</td><td>linux</td><td>5.42.0</td><td>Chris Williams (BINGOS)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/fd4a476e-d403-11f1-a3bc-a055f9c4ba34" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T23:15:00Z</td><td>linux</td><td>5.30.3</td><td>David Cantrell (DCANTRELL)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/7381d986-d325-11f1-a7ba-b89722a7fbaa" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T03:26:00Z</td><td>linux</td><td>5.44.0</td><td>gregor herrmann</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/5b675124-d27f-11f1-8513-9940bd51c4f2" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-02T04:32:00Z</td><td>linux</td><td>5.40.3</td><td>Chris Williams (BINGOS)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/5b3b590c-d676-11f1-a3bc-a055f9c4ba34" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-12T19:08:00Z</td><td>linux</td><td>5.40.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/77353d2c-decc-11f1-a5cd-ce403ecd5b40" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-04T13:43:00Z</td><td>linux</td><td>5.36.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/c7873744-d855-11f1-b049-b07c4f3b7b59" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-27T20:22:00Z</td><td>MSWin32</td><td>5.26.3</td><td>Chad 'Exodist' Granum</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/2daf5424-d244-11f1-bfd3-f4dce1797e42" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T23:15:00Z</td><td>linux</td><td>5.30.3</td><td>David Cantrell (DCANTRELL)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/7cf4438c-d325-11f1-8d0c-bb9b22a7fbaa" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-03T21:57:00Z</td><td>linux</td><td>5.18.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/9da6597a-d7d1-11f1-a966-f10f8218f96e" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T09:38:00Z</td><td>linux</td><td>5.38.2</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/647fa35e-d2b3-11f1-9836-84136e8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-08T06:51:00Z</td><td>freebsd</td><td>5.40.4</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/cc072cd2-db40-11f1-8e8c-b0ec6d8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-10-31T09:15:00Z</td><td>linux</td><td>5.24.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/99211d04-d50b-11f1-9cb1-a5011d75f898" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-29T14:24:00Z</td><td>linux</td><td>5.40.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/83da126a-d3a4-11f1-80df-b4d0287e98fa" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T16:04:00Z</td><td>linux</td><td>5.45.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/511b7bf4-d2e9-11f1-99f9-93e4f1824ff8" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-04T13:21:00Z</td><td>linux</td><td>5.38.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/ac1d6c88-d852-11f1-8125-c751c0cb7d7b" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-03T20:23:00Z</td><td>linux</td><td>5.45.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/61b52822-d7c4-11f1-8294-be10f0d76ca0" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-04T13:01:00Z</td><td>linux</td><td>5.38.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/ca1f4ce0-d84f-11f1-a93e-80e7e5272ee2" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-04T10:59:00Z</td><td>freebsd</td><td>5.40.4</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/cdc41706-d83e-11f1-a2e6-a8ed6d8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-10-28T11:23:00Z</td><td>linux</td><td>5.12.5</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/f62598f0-d2c1-11f1-9836-84136e8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-30T12:46:00Z</td><td>linux</td><td>5.42.0</td><td>Chris Williams (BINGOS)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/f5b5ccec-d45f-11f1-a3bc-a055f9c4ba34" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-06T21:34:00Z</td><td>linux</td><td>5.22.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/df816434-da29-11f1-a2dd-da8ac5696dbb" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-06T23:24:00Z</td><td>linux</td><td>5.22.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/3bee88c8-da39-11f1-8594-96f1ca80b953" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-12T19:21:00Z</td><td>linux</td><td>5.24.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/4f094080-dece-11f1-ac77-f827d9791965" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T16:21:00Z</td><td>linux</td><td>5.40.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/9bbb6e60-d2eb-11f1-a293-eeec73f44c49" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-10-28T11:23:00Z</td><td>linux</td><td>5.14.4</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/f23ecd92-d2c1-11f1-9836-84136e8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T16:08:00Z</td><td>linux</td><td>5.42.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/c24c3a34-d2e9-11f1-bf61-c66738f960a6" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-12T21:32:00Z</td><td>linux</td><td>5.36.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/9a87b264-dee0-11f1-928c-fb40f8d866be" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-10-31T09:20:00Z</td><td>linux</td><td>5.22.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/50c7488e-d50c-11f1-bb37-e86f78ab4e79" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-10-28T16:24:00Z</td><td>linux</td><td>5.20.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/1a163344-d2ec-11f1-a7a4-e8b76a171243" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-29T15:02:00Z</td><td>linux</td><td>5.32.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/c83fe272-d3a9-11f1-99dd-9e1b38a561ef" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-06T23:47:00Z</td><td>linux</td><td>5.16.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/6c9fcd9e-da3c-11f1-a329-b2c42cd7515f" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-29T15:11:00Z</td><td>linux</td><td>5.28.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/0aa17a80-d3ab-11f1-8c5f-d2f6bdf63c96" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-06T20:39:00Z</td><td>linux</td><td>5.34.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/2a4e2978-da22-11f1-83b4-f61b0b37cc06" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-31T14:56:00Z</td><td>linux</td><td>5.28.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/4b4390f0-d53b-11f1-8568-d70c3e27bab1" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-02T14:20:00Z</td><td>linux</td><td>5.40.3</td><td>Chris Williams (BINGOS)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/816743d2-d6c8-11f1-a3bc-a055f9c4ba34" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-29T14:36:00Z</td><td>linux</td><td>5.38.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/1e025afe-d3a6-11f1-89f5-97b03a2876c5" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T06:49:00Z</td><td>linux</td><td>5.42.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/b2a40fe2-d29b-11f1-ba6f-b4c6e8cd6a5a" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-01T18:09:00Z</td><td>freebsd</td><td>5.42.3</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/6289b390-d61f-11f1-89a7-f6286e8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T06:51:00Z</td><td>linux</td><td>5.40.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/11fcb3ea-d29c-11f1-a9ea-92ade0c8846f" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-02T20:32:00Z</td><td>linux</td><td>5.32.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/83753aa6-d6fc-11f1-8a3f-aaee681b5177" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-08T06:47:00Z</td><td>freebsd</td><td>5.40.5</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/54089086-db40-11f1-8e8c-b0ec6d8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-06T20:41:00Z</td><td>linux</td><td>5.34.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/7487583e-da22-11f1-ae45-bf2f3e819cf6" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-02T20:53:00Z</td><td>linux</td><td>5.20.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/6bf088c4-d6ff-11f1-9772-fbaad9e83920" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-03T12:35:00Z</td><td>linux</td><td>5.40.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/185e840c-d783-11f1-9d51-8a933480a5d2" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T16:14:00Z</td><td>linux</td><td>5.40.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/a74aa62a-d2ea-11f1-9866-e20c6be04cdf" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-02T19:44:00Z</td><td>linux</td><td>5.44.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/c01b6ed2-d6f5-11f1-b7dc-f7a42f8cdfc4" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-29T21:58:00Z</td><td>linux</td><td>5.40.0</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/e7af74d0-d3e3-11f1-9bb9-eca2d625169d" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-31T14:23:00Z</td><td>linux</td><td>5.42.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/9e6dc8ae-d536-11f1-89e9-a70e063378f0" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-10-29T15:15:00Z</td><td>linux</td><td>5.22.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/a4f6a43e-d3ab-11f1-9dd7-c4a42a80b6c0" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-29T15:23:00Z</td><td>linux</td><td>5.42.0</td><td>Chris Williams (BINGOS)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/a3173d76-d3ac-11f1-a3bc-a055f9c4ba34" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-11-12T02:32:00Z</td><td>linux</td><td>5.20.3</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/5b8c367e-de41-11f1-921e-01016e8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T16:03:00Z</td><td>linux</td><td>5.45.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/1299e906-d2e9-11f1-9247-ae5ad3f78795" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-04T14:37:00Z</td><td>linux</td><td>5.28.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/536ca8c8-d85d-11f1-abc0-ee27230c63e2" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-01T18:00:00Z</td><td>freebsd</td><td>5.42.3</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/102b9cae-d61e-11f1-89a7-f6286e8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-04T10:53:00Z</td><td>freebsd</td><td>5.38.5</td><td>Slaven Rezi&#x107;</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/f97dd658-d83d-11f1-a2e6-a8ed6d8775ea" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-29T21:25:00Z</td><td>linux</td><td>5.38.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/49ebab14-d3df-11f1-846c-da2d2eaf8eee" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T16:18:00Z</td><td>linux</td><td>5.40.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/424995e6-d2eb-11f1-98f1-f08d57a9475d" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-29T14:39:00Z</td><td>linux</td><td>5.38.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/9cc57eca-d3a6-11f1-a7f3-a9f0a36282aa" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T14:48:00Z</td><td>linux</td><td>5.40.0</td><td>Nigel Horne</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/a806f4d0-d2de-11f1-9745-eeea39cd02cb" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-na"><td>2026-10-31T14:59:00Z</td><td>linux</td><td>5.24.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/b3481478-d53b-11f1-9b27-e8cadd615535" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-28T06:32:00Z</td><td>linux</td><td>5.45.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/5a17154c-d299-11f1-9f66-fdfcc3f41fe9" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-06T23:21:00Z</td><td>linux</td><td>5.28.2</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/c53f714c-da38-11f1-96e1-d21e352e6bbe" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-10-31T09:10:00Z</td><td>linux</td><td>5.26.1</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/f3fcafbe-d50a-11f1-83d9-d73247f8739a" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-02T19:16:00Z</td><td>linux</td><td>5.45.3</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/f525c7e8-d6f1-11f1-823c-c5b89274af71" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-03T20:33:00Z</td><td>linux</td><td>5.40.4</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/e63d1306-d7c5-11f1-a8b1-b12d2d0efc0c" target="_blank">View</a></td><td></td></tr>
+<tr class="cpan-fail"><td>2026-11-04T11:51:00Z</td><td>linux</td><td>5.40.5</td><td>Andreas J. K&ouml;nig (ANDK)</td><td></td>
+				<td><a href="https://www.cpantesters.org/cpan/report/0303200e-d846-11f1-8b77-af2fbcc16131" target="_blank">View</a></td><td></td></tr>
 </tbody></table>
 <h2>Mutation Report</h2>
 <h3>Mutation Summary</h3>
@@ -1050,8 +973,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <h2>Structural Coverage (Approximate)</h2>
 <div class='summary'>
-Statement Coverage: 100.00% (386 / 386)<br>
-Branch Coverage: 100.00% (206 / 206)<br>
+Statement Coverage: 100.00% (397 / 397)<br>
+Branch Coverage: 100.00% (210 / 210)<br>
 <em>Approximate LCSAJ derived from branch and statement coverage.</em>
 </div>
 <h2>Executive Summary</h2>
@@ -1060,7 +983,7 @@ Tests execute 100.00% of the code. No mutation data available yet — trigger th
 </div>
 <footer>
 	<p>Project: <a href="https://github.com/nigelhorne/Test-Log-Abstraction">Test-Log-Abstraction</a></p>
-	<p><em>Last updated: 2026-10-27 19:01:09 - <a href="https://github.com/nigelhorne/Test-Log-Abstraction/commit/587717cd6b071e21efdc26f3e3aebdc0d395e70b">commit <code>587717c</code></a></em></p>
+	<p><em>Last updated: 2026-11-13 14:11:09 - <a href="https://github.com/nigelhorne/Test-Log-Abstraction/commit/1e72e00c8896c6141877582a70741acb24b51895">commit <code>1e72e00</code></a></em></p>
 	<p style="float: right; font-size: 0.85em; color: #999;">Powered by <a href="https://metacpan.org/dist/App-Test-Generator">App::Test::Generator 0.46</a></p>
 </footer>
 </body>
